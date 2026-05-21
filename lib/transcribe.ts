@@ -3,6 +3,7 @@ import {
   OPENROUTER_TRANSCRIBE_MODEL,
 } from "@/lib/constants";
 import { openRouterApiKey } from "@/lib/env";
+import { SITE_URL } from "@/lib/site";
 
 export type TranscriptionResult = {
   transcript: string;
@@ -90,7 +91,7 @@ async function transcribeWithOpenRouter(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://audiolens.app",
+      "HTTP-Referer": SITE_URL,
       "X-Title": "AudioLens",
     },
     body: JSON.stringify({

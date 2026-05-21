@@ -4,6 +4,7 @@ import {
   OPENROUTER_MODEL_DEFAULT,
 } from "@/lib/constants";
 import { openRouterApiKey } from "@/lib/env";
+import { SITE_URL } from "@/lib/site";
 
 export async function analyzeTranscript(
   transcript: string,
@@ -21,7 +22,7 @@ export async function analyzeTranscript(
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://audiolens.app",
+      "HTTP-Referer": SITE_URL,
       "X-Title": "AudioLens",
     },
     body: JSON.stringify({

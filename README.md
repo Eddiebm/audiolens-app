@@ -76,7 +76,7 @@ JSON { transcript, language, analysis }
 | `OPENROUTER_MODEL` | No | Analysis model (default `anthropic/claude-sonnet-4`) |
 | `OPENROUTER_TRANSCRIBE_MODEL` | No | Multimodal transcribe model if no OpenAI key (default `google/gemini-2.5-flash`) |
 | `OPENAI_API_KEY` | No | Preferred transcription via OpenAI Whisper API |
-| `NEXT_PUBLIC_SITE_URL` | No | Canonical URL for metadata (default `https://audiolens.app`) |
+| `NEXT_PUBLIC_SITE_URL` | No | Canonical URL for metadata (default `https://audiolens-app.vercel.app`) |
 
 ### Vercel setup
 
@@ -110,6 +110,16 @@ npm start
 
 - CLI: `~/audiolens` — BlackHole + local faster-whisper + live chunks
 - This app: `audiolens-app` — cloud-first companion on Vercel
+
+## Production URL
+
+**Live app:** [https://audiolens-app.vercel.app/analyze](https://audiolens-app.vercel.app/analyze)
+
+`audiolens.app` is not wired to Vercel yet (DNS does not resolve). To use a custom domain after you own it:
+
+1. Vercel → **audiolens-app** → **Settings → Domains** → add `audiolens.app` (and `www` if needed).
+2. At your registrar, point nameservers to Vercel or add the DNS records Vercel shows (apex often needs Vercel DNS or A `76.76.21.21`).
+3. Set `NEXT_PUBLIC_SITE_URL=https://audiolens.app` in Vercel env vars and redeploy.
 
 ## Deploy
 
