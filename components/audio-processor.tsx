@@ -34,6 +34,13 @@ import {
   upsertSession,
 } from "@/lib/session-storage";
 import { createSilenceMonitor, measureStreamRms } from "@/lib/silence-monitor";
+import {
+  multipleAudioTracksWarning,
+  requestTabDisplayMedia,
+  stopMediaStream,
+  TAB_ONLY_REJECT_MESSAGE,
+  validateBrowserTabSurface,
+} from "@/lib/client/tab-capture";
 import type { ProcessResult, SectionAnalysis } from "@/lib/types";
 
 type ProgressState = {
@@ -91,7 +98,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [presetId, setPresetId] = useState<AnalysisPresetId>("default");
-  const [showAdvanced, setShowAdvanced] = useState(!youtubeMode);
+  const [showAdvanced] = useState(!youtubeMode);
   const [preflight, setPreflight] = useState<PreflightState>("idle");
   const [silenceThreshold, setSilenceThreshold] = useState(
     DEFAULT_SILENCE_RMS_THRESHOLD
@@ -494,7 +501,74 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
 
   useEffect(() => () => stopActiveStream(), [stopActiveStream]);
 
+  const rejectNonTabSurface = (stream: MediaStream): boolean => {
+    const check = validateBrowserTabSurface(stream);
+    if (!check.ok) {
+      stopMediaStream(stream);
+      setError(TAB_ONLY_REJECT_MESSAGE);
+      return true;
+    }
+    return false;
+  };
+
+  const runYoutubePreflightTest = async () => {
+    setPreflight("testing");
+    setError(null);
+    setWarning(null);
+    try {
+      const stream = await requestTabDisplayMedia();
+      try {
+        if (rejectNonTabSurface(stream)) {
+          setPreflight("fail");
+          return;
+        }
+
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          stopMediaStream(stream);
+          setPreflight("fail");
+          setError('No tab audio — enable "Share tab audio" in the picker.');
+          return;
+        }
+
+        const multiWarn = multipleAudioTracksWarning(stream);
+        if (multiWarn) setWarning(multiWarn);
+
+        const audioOnly = new MediaStream(audioTracks);
+        const peak = await measureStreamRms(audioOnly, PREFLIGHT_TEST_MS);
+        audioOnly.getTracks().forEach((t) => t.stop());
+
+        if (rejectNonTabSurface(stream)) {
+          setPreflight("fail");
+          return;
+        }
+
+        setPreflight(peak >= silenceThreshold ? "ok" : "fail");
+        if (peak < silenceThreshold) {
+          setError(
+            "Low audio level during test. Start playback in the tab, then test again."
+          );
+        }
+      } finally {
+        stopMediaStream(stream);
+      }
+    } catch (e) {
+      setPreflight("fail");
+      if (e instanceof DOMException && e.name === "NotAllowedError") {
+        setError("Preflight cancelled — pick a tab and allow audio.");
+        return;
+      }
+      setError(
+        e instanceof Error ? e.message : "Preflight cancelled or failed."
+      );
+    }
+  };
+
   const runPreflightTest = async () => {
+    if (youtubeMode) {
+      await runYoutubePreflightTest();
+      return;
+    }
     setPreflight("testing");
     setError(null);
     try {
@@ -530,7 +604,55 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
     }
   };
 
+  const startYoutubeTabCapture = async () => {
+    setError(null);
+    setResult(null);
+    setWarning(null);
+
+    try {
+      const stream = await requestTabDisplayMedia();
+
+      if (rejectNonTabSurface(stream)) return;
+
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        stopMediaStream(stream);
+        setError(
+          'No audio shared. Pick the playing tab and enable "Share tab audio".'
+        );
+        return;
+      }
+
+      const multiWarn = multipleAudioTracksWarning(stream);
+      if (multiWarn) setWarning(multiWarn);
+
+      stream.getVideoTracks().forEach((t) => t.stop());
+      const audioOnly = new MediaStream(audioTracks);
+      activeStreamRef.current = audioOnly;
+
+      audioTracks[0]?.addEventListener("ended", () => {
+        if (mediaRecorderRef.current?.state === "recording") {
+          mediaRecorderRef.current.stop();
+        }
+      });
+
+      startMediaRecorder(audioOnly, "display");
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "NotAllowedError") {
+        setError("Capture cancelled — pick a tab and allow audio.");
+        return;
+      }
+      setError(
+        e instanceof Error ? e.message : "Could not start tab capture."
+      );
+    }
+  };
+
   const startDisplayCapture = async () => {
+    if (youtubeMode) {
+      await startYoutubeTabCapture();
+      return;
+    }
     setError(null);
     setResult(null);
     setWarning(null);
@@ -642,14 +764,31 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   return (
     <div className="space-y-8">
       {youtubeMode ? (
-        <section className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-8 text-center">
-          <h2 className="text-xl font-semibold text-violet-100">
+        <section className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-8">
+          <h2 className="text-center text-xl font-semibold text-violet-100">
             Capture YouTube tab audio
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-zinc-400">
-            Open your video in Chrome, click below, select that tab, and enable
-            &quot;Share tab audio&quot;. Recording auto-stops when the video ends
-            (silence ~50s) or when you click stop. Up to 2 hours.
+          <p className="mx-auto mt-4 max-w-lg text-center text-sm font-semibold text-zinc-100">
+            <strong>Isolated capture:</strong> only audio from the tab you
+            select. Room noise and other apps are <strong>NOT</strong> recorded.
+          </p>
+          <ol className="mx-auto mt-4 max-w-md list-decimal space-y-2 pl-6 text-sm text-zinc-300">
+            <li>
+              Open your video in a <strong>YouTube tab</strong> (Chrome or Edge)
+            </li>
+            <li>
+              Click below and share <strong>THIS tab</strong> — enable{" "}
+              <strong>Share tab audio</strong>
+            </li>
+            <li>
+              Never pick <strong>Entire screen</strong> or a{" "}
+              <strong>Window</strong> — those include other sounds
+            </li>
+          </ol>
+          <p className="mx-auto mt-4 max-w-lg text-center text-xs text-zinc-500">
+            The browser picker may still show screen options — we reject Entire
+            Screen and Window after you choose. Recording auto-stops when the
+            video ends (silence ~50s) or when you stop. Up to 2 hours.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3">
             {!isCapturing ? (
@@ -661,14 +800,18 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   className="text-sm text-zinc-400 underline hover:text-zinc-200 disabled:opacity-50"
                 >
                   {preflight === "testing"
-                    ? "Testing audio (5s)…"
+                    ? "Testing tab audio (5s)…"
                     : "Test tab audio (5s)"}
                 </button>
                 {preflight === "ok" && (
-                  <p className="text-sm text-emerald-400">Tab audio detected</p>
+                  <p className="text-sm text-emerald-400">
+                    Tab-only capture verified — audio detected
+                  </p>
                 )}
                 {preflight === "fail" && (
-                  <p className="text-sm text-rose-400">No tab audio detected</p>
+                  <p className="text-sm text-rose-400">
+                    Test failed — check tab selection and playback
+                  </p>
                 )}
                 <button
                   type="button"
@@ -690,23 +833,16 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             )}
           </div>
           {isCapturing && (
-            <p className="mt-6 font-mono text-2xl tabular-nums text-cyan-300">
+            <p className="mt-6 text-center font-mono text-2xl tabular-nums text-cyan-300">
               {formatElapsed(elapsedSec)}
             </p>
           )}
           {isCapturing && (
-            <p className="mt-2 text-xs text-zinc-500">
+            <p className="mt-2 text-center text-xs text-zinc-500">
               ~{estChunks} chunk{estChunks === 1 ? "" : "s"} expected at this
               length
             </p>
           )}
-          <button
-            type="button"
-            className="mt-6 text-xs text-zinc-500 hover:text-zinc-300"
-            onClick={() => setShowAdvanced((v) => !v)}
-          >
-            {showAdvanced ? "Hide" : "Show"} advanced (upload / mic)
-          </button>
         </section>
       ) : null}
 

@@ -9,6 +9,7 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | Path | Purpose |
 |------|---------|
 | `/` | Landing — cloud-first positioning + tab/screen capture |
+| `/youtube` | **Tab-only** capture for YouTube / in-browser video (no mic, no upload) |
 | `/analyze` | Upload, mic, or desktop/tab capture → transcript + analysis |
 | `/dashboard` | Import session JSON history (CLI bridge) |
 
@@ -20,6 +21,18 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | **Browser — microphone** | Voice notes, in-room audio | No |
 | **Browser — tab/screen capture** | YouTube, webinars, VLC/QuickTime while playing | No — uses Screen Capture API (`getDisplayMedia`) |
 | **macOS CLI** | Live, hands-free system audio loop | Yes — virtual device + Python CLI |
+
+### YouTube / isolated tab capture (`/youtube`)
+
+**Goal:** only the selected browser tab’s audio — no microphone, no room noise, no Entire Screen / Window system-audio mix.
+
+1. Open the video in a **Chrome or Edge tab**.
+2. Click **Test tab audio (5s)** or **Capture YouTube tab**.
+3. In the picker, choose **Chrome tab** (this tab) and enable **Share tab audio**.
+4. **Do not** pick **Entire screen** or **Window** — AudioLens checks `displaySurface` on the capture track and **rejects** non-tab shares with an error (other apps and system sounds are included in those modes).
+5. `preferCurrentTab: true` is requested when supported (Chrome `CaptureController`); the picker may still list screen options — wrong choices are rejected after selection, not silently accepted.
+
+**Limitation:** browsers cannot hide screen/window options in the OS picker; enforcement is post-selection via `MediaStreamTrack.getSettings().displaySurface === 'browser'`.
 
 ### Browser tab / screen capture (`/analyze`)
 

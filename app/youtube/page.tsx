@@ -14,7 +14,12 @@ export default function YoutubePage() {
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold tracking-tight">YouTube & long video</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {SITE_NAME} — one-click tab capture for lectures, podcasts, and streams.
+          {SITE_NAME} — tab-only capture for lectures, podcasts, and streams.
+        </p>
+        <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-300">
+          <strong>Audio isolation:</strong> we record only the tab you share — not
+          your microphone, not room noise, and not mixed system audio from Entire
+          Screen or Window share.
         </p>
       </div>
       <AudioProcessor mode="youtube" />
