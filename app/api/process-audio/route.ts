@@ -1,4 +1,5 @@
 import { analyzeTranscript } from "@/lib/analyze";
+import { openRouterApiKey } from "@/lib/env";
 import {
   ACCEPTED_AUDIO_TYPES,
   ACCEPTED_EXTENSIONS,
@@ -18,7 +19,7 @@ function isAcceptedFile(file: File): boolean {
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    if (!openRouterApiKey()) {
       return NextResponse.json(
         {
           error:

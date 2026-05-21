@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type ProcessResult = {
   transcript: string;
@@ -10,17 +10,38 @@ type ProcessResult = {
   processedAt: string;
 };
 
+type CaptureKind = "mic" | "display" | null;
+
 const ACCEPT =
   "audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/m4a,audio/wav,audio/webm,.mp3,.m4a,.wav,.webm";
 
+function isSafariBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua);
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function AudioProcessor() {
   const [file, setFile] = useState<File | null>(null);
-  const [recording, setRecording] = useState(false);
+  const [captureKind, setCaptureKind] = useState<CaptureKind>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProcessResult | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const activeStreamRef = useRef<MediaStream | null>(null);
+  const captureStartedAtRef = useRef<number | null>(null);
+
+  const isCapturing = captureKind !== null;
+  const isBusy = loading || isCapturing;
 
   const processFile = useCallback(async (audioFile: File) => {
     setLoading(true);
@@ -47,6 +68,73 @@ export function AudioProcessor() {
     }
   }, []);
 
+  const stopActiveStream = useCallback(() => {
+    activeStreamRef.current?.getTracks().forEach((t) => t.stop());
+    activeStreamRef.current = null;
+  }, []);
+
+  const finishCapture = useCallback(
+    (blob: Blob, prefix: string) => {
+      stopActiveStream();
+      setCaptureKind(null);
+      captureStartedAtRef.current = null;
+      const recorded = new File([blob], `${prefix}-${Date.now()}.webm`, {
+        type: blob.type || "audio/webm",
+      });
+      setFile(recorded);
+      void processFile(recorded);
+    },
+    [processFile, stopActiveStream]
+  );
+
+  const startMediaRecorder = useCallback(
+    (stream: MediaStream, kind: CaptureKind) => {
+      const mimeCandidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "video/webm;codecs=vp9,opus",
+        "video/webm",
+      ];
+      const mimeType =
+        mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
+
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined
+      );
+      chunksRef.current = [];
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunksRef.current.push(ev.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        finishCapture(blob, kind === "display" ? "tab-capture" : "recording");
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start(1000);
+      captureStartedAtRef.current = Date.now();
+      setCaptureKind(kind);
+      setElapsedSec(0);
+      setError(null);
+      setResult(null);
+    },
+    [finishCapture]
+  );
+
+  useEffect(() => {
+    if (!isCapturing || captureStartedAtRef.current === null) return;
+    const tick = () => {
+      setElapsedSec(
+        Math.floor((Date.now() - captureStartedAtRef.current!) / 1000)
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [isCapturing]);
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0];
     if (picked) {
@@ -60,37 +148,82 @@ export function AudioProcessor() {
     if (file) void processFile(file);
   };
 
-  const startRecording = async () => {
+  const startMicRecording = async () => {
     setError(null);
     setResult(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-      recorder.ondataavailable = (ev) => {
-        if (ev.data.size > 0) chunksRef.current.push(ev.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const recorded = new File([blob], `recording-${Date.now()}.webm`, {
-          type: "audio/webm",
-        });
-        setFile(recorded);
-        void processFile(recorded);
-      };
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
+      activeStreamRef.current = stream;
+      startMediaRecorder(stream, "mic");
     } catch {
       setError("Microphone access denied or unavailable in this browser.");
     }
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
+  const startDisplayCapture = async () => {
+    setError(null);
+    setResult(null);
+
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      setError(
+        "Screen capture is not supported in this browser. Try Chrome or Edge on desktop."
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          sampleRate: 44100,
+        },
+      });
+
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        stream.getTracks().forEach((t) => t.stop());
+        setError(
+          'No audio was shared. When prompted, pick the tab or window where your video plays and enable "Share tab audio" (Chrome) or "Share system audio" (Windows/macOS screen share).'
+        );
+        return;
+      }
+
+      stream.getVideoTracks().forEach((t) => t.stop());
+
+      const audioOnly = new MediaStream(audioTracks);
+      activeStreamRef.current = audioOnly;
+
+      audioTracks[0]?.addEventListener("ended", () => {
+        if (mediaRecorderRef.current?.state === "recording") {
+          mediaRecorderRef.current.stop();
+        }
+      });
+
+      startMediaRecorder(audioOnly, "display");
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "NotAllowedError") {
+        setError("Capture cancelled — pick a tab or window and allow audio sharing.");
+        return;
+      }
+      setError(
+        e instanceof Error ? e.message : "Could not start tab/screen capture."
+      );
+    }
   };
+
+  const stopCapture = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    } else {
+      stopActiveStream();
+      setCaptureKind(null);
+      captureStartedAtRef.current = null;
+    }
+  };
+
+  const safari = isSafariBrowser();
 
   return (
     <div className="space-y-8">
@@ -98,10 +231,10 @@ export function AudioProcessor() {
         <h2 className="text-lg font-semibold text-zinc-100">Upload or record</h2>
         <p className="mt-2 text-sm text-zinc-400">
           mp3, m4a, wav, or webm — processed in the cloud. No BlackHole or local CLI
-          required.
+          required for upload, mic, or tab/screen capture.
         </p>
 
-        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20">
             Choose file
             <input
@@ -109,28 +242,38 @@ export function AudioProcessor() {
               accept={ACCEPT}
               className="sr-only"
               onChange={onFileChange}
-              disabled={loading || recording}
+              disabled={isBusy}
             />
           </label>
-          {!recording ? (
-            <button
-              type="button"
-              onClick={() => void startRecording()}
-              disabled={loading}
-              className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-50"
-            >
-              Record from mic
-            </button>
+          {!isCapturing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void startMicRecording()}
+                disabled={loading}
+                className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-50"
+              >
+                Record from mic
+              </button>
+              <button
+                type="button"
+                onClick={() => void startDisplayCapture()}
+                disabled={loading}
+                className="inline-flex items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
+              >
+                Capture desktop / tab audio
+              </button>
+            </>
           ) : (
             <button
               type="button"
-              onClick={stopRecording}
+              onClick={stopCapture}
               className="inline-flex items-center justify-center rounded-full bg-red-500/90 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400"
             >
               Stop & analyze
             </button>
           )}
-          {file && !recording && (
+          {file && !isCapturing && (
             <button
               type="button"
               onClick={onSubmit}
@@ -142,15 +285,47 @@ export function AudioProcessor() {
           )}
         </div>
 
+        <div className="mt-5 rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 text-sm text-zinc-300">
+          <p className="font-medium text-violet-100">
+            Capture tab or screen audio — pick the tab/window where your video is playing
+          </p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-zinc-400">
+            <li>
+              <strong className="text-zinc-300">Chrome tab</strong> — best for YouTube and
+              browser video; check &quot;Share tab audio&quot; in the picker.
+            </li>
+            <li>
+              <strong className="text-zinc-300">Window or entire screen</strong> — for VLC,
+              QuickTime, or native players; enable &quot;Share system audio&quot; when the
+              browser offers it.
+            </li>
+            <li>Video from the share is not uploaded — only the audio track is recorded.</li>
+          </ul>
+          {safari && (
+            <p className="mt-3 text-xs text-amber-200/90">
+              Safari has limited display-audio support. For reliable tab capture, use Chrome
+              or Edge on desktop.
+            </p>
+          )}
+        </div>
+
         {file && (
           <p className="mt-4 text-xs text-zinc-500">
             Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
           </p>
         )}
-        {recording && (
+        {captureKind === "mic" && (
           <p className="mt-4 flex items-center gap-2 text-sm text-amber-200/90">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-400" />
-            Recording — captures your microphone, not system audio.
+            Mic recording {formatElapsed(elapsedSec)} — captures your microphone, not
+            system audio.
+          </p>
+        )}
+        {captureKind === "display" && (
+          <p className="mt-4 flex items-center gap-2 text-sm text-violet-200/90">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-violet-400" />
+            Capturing tab/screen audio {formatElapsed(elapsedSec)} — stop when your clip
+            ends.
           </p>
         )}
       </section>

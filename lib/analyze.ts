@@ -3,12 +3,13 @@ import {
   OPENROUTER_BASE_URL,
   OPENROUTER_MODEL_DEFAULT,
 } from "@/lib/constants";
+import { openRouterApiKey } from "@/lib/env";
 
 export async function analyzeTranscript(
   transcript: string,
   language: string
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const apiKey = openRouterApiKey();
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }

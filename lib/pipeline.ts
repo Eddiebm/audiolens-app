@@ -10,11 +10,12 @@ export type PipelineStep = {
 export const CLOUD_PIPELINE_STEPS: PipelineStep[] = [
   {
     id: "upload",
-    title: "Upload or record",
-    summary: "Send mp3, m4a, wav, webm — or record from your mic in the browser.",
+    title: "Upload, mic, or tab capture",
+    summary:
+      "Send mp3, m4a, wav, webm — record your mic, or capture a Chrome tab / screen with shared audio.",
     runtime: "web",
     detail:
-      "No BlackHole, no Python CLI, no local Whisper. Works on any OS with a modern browser.",
+      "No BlackHole for the browser path: use Screen Capture API (getDisplayMedia) and enable Share tab audio or Share system audio in the picker. Best on Chrome/Edge desktop.",
   },
   {
     id: "transcribe",
@@ -84,4 +85,4 @@ export const BRIDGE_ROADMAP = [
   "macOS menu-bar helper syncing CLI JSON to the web app",
 ] as const;
 
-export const SYSTEM_AUDIO_LIMITATION = `Full macOS **system audio** (everything playing on your speakers) cannot run 100% in the browser or on Vercel alone. Web apps cannot tap system output without either: (1) a local agent (BlackHole + CLI/Electron), (2) changing input to file upload / URL / browser mic, or (3) a cloud meeting bot that joins the call. AudioLens cloud mode uses upload, mic record, or future URL ingest — not live system capture.`;
+export const SYSTEM_AUDIO_LIMITATION = `Browsers cannot silently tap macOS system output like BlackHole does. AudioLens web capture uses the **Screen Capture API**: you pick a **Chrome tab** (YouTube, webinars — enable "Share tab audio") or **window/screen** (VLC, native players — enable "Share system audio" when offered). Safari is limited; Chrome/Edge on desktop work best. For unattended **live** system-audio loops without a picker, use the optional macOS CLI + BlackHole.`;

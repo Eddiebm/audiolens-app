@@ -22,16 +22,17 @@ export default function Home() {
         />
         <div className="relative mx-auto max-w-3xl text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-cyan-400/90">
-            Cloud · OpenRouter · no BlackHole
+            Cloud · tab capture · no BlackHole
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl sm:leading-[1.1]">
-            Upload or record audio —{" "}
-            <span className="text-cyan-300">transcribe and analyze</span> in the cloud
+            Upload, mic, or{" "}
+            <span className="text-cyan-300">capture desktop video audio</span> in the
+            browser
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-            {SITE_NAME} turns meetings, podcasts, and voice notes into a transcript plus
-            concise AI analysis. Works from any browser — no Mac CLI, BlackHole, or local
-            Whisper on your machine.
+            {SITE_NAME} turns meetings, podcasts, YouTube, and voice notes into a transcript
+            plus concise AI analysis. Share a Chrome tab or screen with audio — or upload a
+            file — no BlackHole install required for the web path.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
@@ -85,7 +86,8 @@ export default function Home() {
             Cloud path (primary)
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-center text-xl text-zinc-200">
-            Upload mp3, m4a, wav, or webm — or record from your mic. We transcribe in the
+            Upload mp3, m4a, wav, or webm — record your mic — or capture a tab/screen while
+            a video plays (enable shared audio in the browser picker). We transcribe in the
             cloud and analyze with OpenRouter.
           </p>
           <div className="mt-10">

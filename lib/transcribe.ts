@@ -2,6 +2,7 @@ import {
   OPENROUTER_BASE_URL,
   OPENROUTER_TRANSCRIBE_MODEL,
 } from "@/lib/constants";
+import { openRouterApiKey } from "@/lib/env";
 
 export type TranscriptionResult = {
   transcript: string;
@@ -26,7 +27,7 @@ export async function transcribeAudio(
     return transcribeWithOpenAI(bytes, mimeType, filename, openAiKey);
   }
 
-  const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+  const openRouterKey = openRouterApiKey();
   if (!openRouterKey) {
     throw new Error(
       "Set OPENROUTER_API_KEY on Vercel (and optionally OPENAI_API_KEY for Whisper API transcription)."
