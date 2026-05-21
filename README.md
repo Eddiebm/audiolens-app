@@ -41,7 +41,7 @@ Browsers cannot capture macOS system audio without a native helper. Do not fake 
 
 ## Related repos
 
-- CLI: `~/audiolens` — `python3 main.py`
+- CLI: [github.com/Eddiebm/audiolens](https://github.com/Eddiebm/audiolens) — `python3 main.py` on macOS
 - Skill: `~/.claude/skills/audiolens-yc` — YC checklist, growth hooks, CLI setup
 
 ## Deploy
