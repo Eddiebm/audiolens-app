@@ -1,7 +1,7 @@
 {
   "name": "audiolens-app",
   "version": "0.1.0",
-  "description": "AudioLens — live audio intelligence web companion for macOS CLI",
+  "description": "AudioLens — cloud audio transcription and analysis (upload or mic)",
   "private": true,
   "scripts": {
     "dev": "next dev",

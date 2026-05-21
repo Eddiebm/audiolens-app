@@ -6,51 +6,82 @@ export type PipelineStep = {
   detail: string;
 };
 
-export const PIPELINE_STEPS: PipelineStep[] = [
+/** Cloud-first path (web app primary product) */
+export const CLOUD_PIPELINE_STEPS: PipelineStep[] = [
+  {
+    id: "upload",
+    title: "Upload or record",
+    summary: "Send mp3, m4a, wav, webm — or record from your mic in the browser.",
+    runtime: "web",
+    detail:
+      "No BlackHole, no Python CLI, no local Whisper. Works on any OS with a modern browser.",
+  },
+  {
+    id: "transcribe",
+    title: "Cloud transcription",
+    summary: "OpenAI Whisper API (if configured) or OpenRouter multimodal audio.",
+    runtime: "cloud",
+    detail:
+      "Audio is processed on the server (Vercel). Set OPENAI_API_KEY for Whisper, or rely on OPENROUTER_API_KEY with a multimodal model.",
+  },
+  {
+    id: "analyze",
+    title: "OpenRouter analysis",
+    summary: "Only transcript text is sent to your chosen LLM via OpenRouter.",
+    runtime: "cloud",
+    detail:
+      "OPENROUTER_API_KEY stays server-side on Vercel. Default model: anthropic/claude-sonnet-4 (override with OPENROUTER_MODEL).",
+  },
+  {
+    id: "results",
+    title: "Transcript + insights",
+    summary: "Side-by-side transcript and analysis panels in the web app.",
+    runtime: "web",
+    detail: "Optional: export session JSON for the dashboard history view.",
+  },
+];
+
+/** macOS CLI advanced path */
+export const CLI_PIPELINE_STEPS: PipelineStep[] = [
   {
     id: "capture",
     title: "System audio capture",
     summary: "BlackHole routes Mac app audio into a virtual input.",
     runtime: "macos",
     detail:
-      "Browsers cannot access system audio on macOS. AudioLens uses BlackHole 2ch plus a Multi-Output Device so you hear audio and capture it at the same time.",
+      "Browsers cannot access macOS system audio without a native helper. The CLI uses BlackHole 2ch plus a Multi-Output Device.",
   },
   {
     id: "record",
     title: "Chunked recording",
-    summary: "sounddevice records fixed windows (default 8s) from the virtual device.",
+    summary: "sounddevice records fixed windows from the virtual device.",
     runtime: "macos",
-    detail:
-      "Silence is skipped via RMS threshold so Whisper is not called on empty chunks.",
+    detail: "Silence is skipped via RMS threshold so Whisper is not called on empty chunks.",
   },
   {
-    id: "transcribe",
+    id: "transcribe-local",
     title: "Local transcription",
-    summary: "faster-whisper on CPU — audio never leaves your machine.",
+    summary: "faster-whisper on CPU — audio never leaves your Mac.",
     runtime: "local",
-    detail:
-      "Default model is base with int8. Optional translate-to-English task before analysis.",
+    detail: "Default model is base with int8. Optional translate-to-English before analysis.",
   },
   {
-    id: "analyze",
-    title: "Claude analysis",
-    summary: "Only transcript text is sent to the Anthropic API.",
+    id: "analyze-cli",
+    title: "Claude / OpenRouter",
+    summary: "Only transcript text is sent to the API from the CLI.",
     runtime: "cloud",
-    detail:
-      "Rolling context from the last five chunks keeps analysis coherent across a live session.",
-  },
-  {
-    id: "surface",
-    title: "Web dashboard (v1)",
-    summary: "History, setup docs, and session import — capture stays in the CLI.",
-    runtime: "web",
-    detail:
-      "v1 bridge: export or paste session JSON from the CLI into the dashboard. Native sync and menu-bar app are on the roadmap.",
+    detail: "Rolling context from the last five chunks for live sessions.",
   },
 ];
 
+/** @deprecated use CLOUD_PIPELINE_STEPS — kept for imports */
+export const PIPELINE_STEPS = CLOUD_PIPELINE_STEPS;
+
 export const BRIDGE_ROADMAP = [
-  "CLI flag to append chunks to a local JSON file",
-  "Menu-bar helper that watches the export file",
-  "Optional Electron/Tauri shell wrapping the same Python core",
+  "Session export from cloud analyze → dashboard history",
+  "URL / podcast feed ingest (no upload)",
+  "Optional meeting-bot path for calendar-linked capture",
+  "macOS menu-bar helper syncing CLI JSON to the web app",
 ] as const;
+
+export const SYSTEM_AUDIO_LIMITATION = `Full macOS **system audio** (everything playing on your speakers) cannot run 100% in the browser or on Vercel alone. Web apps cannot tap system output without either: (1) a local agent (BlackHole + CLI/Electron), (2) changing input to file upload / URL / browser mic, or (3) a cloud meeting bot that joins the call. AudioLens cloud mode uses upload, mic record, or future URL ingest — not live system capture.`;

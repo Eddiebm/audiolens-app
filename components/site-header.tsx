@@ -2,9 +2,9 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/analyze", label: "Analyze" },
+  { href: "/dashboard", label: "History" },
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/#setup", label: "Setup" },
 ];
 
 export function SiteHeader() {
@@ -28,7 +28,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/dashboard"
+            href="/analyze"
             className="rounded-full bg-cyan-500 px-3 py-1.5 text-xs font-medium text-[#041018] transition hover:bg-cyan-400"
           >
             Open app

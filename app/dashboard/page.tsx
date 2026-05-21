@@ -5,44 +5,50 @@ import { SessionImport } from "@/components/session-import";
 import { BRIDGE_ROADMAP } from "@/lib/pipeline";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "History",
   description:
-    "AudioLens session history, pipeline overview, and CLI bridge for macOS live audio intelligence.",
+    "Import AudioLens session JSON from the macOS CLI or future cloud exports.",
 };
 
 export default function DashboardPage() {
   return (
     <main className="mx-auto max-w-3xl flex-1 px-4 py-10 sm:px-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Session history</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          v1: review imported sessions and follow the capture pipeline. Live capture runs
-          in the{" "}
-          <Link href="/#setup" className="text-cyan-400 hover:underline">
+          Import JSON from the{" "}
+          <Link href="/#mac-cli" className="text-cyan-400 hover:underline">
             macOS CLI
+          </Link>{" "}
+          (when export is enabled). For new analysis, use{" "}
+          <Link href="/analyze" className="text-cyan-400 hover:underline">
+            Analyze audio
           </Link>
           .
         </p>
       </div>
 
-      <section className="mb-10 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm text-amber-100/90">
-        <strong className="font-medium">Not in the browser:</strong> system audio capture
-        on macOS requires BlackHole + the AudioLens CLI. This page does not record audio.
-      </section>
-
-      <section className="mb-12">
-        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-zinc-500">
-          Pipeline
-        </h2>
-        <PipelineFlow compact />
+      <section className="mb-10 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4 text-sm text-cyan-100/90">
+        <strong className="font-medium">Primary product:</strong> cloud upload at{" "}
+        <Link href="/analyze" className="underline">
+          /analyze
+        </Link>{" "}
+        — no local install required.
       </section>
 
       <section className="mb-12">
         <SessionImport />
       </section>
 
+      <section className="mb-12">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          Cloud pipeline
+        </h2>
+        <PipelineFlow compact />
+      </section>
+
       <section className="rounded-xl border border-white/10 p-5 text-sm text-zinc-400">
-        <h2 className="font-semibold text-zinc-200">CLI → web bridge (planned)</h2>
+        <h2 className="font-semibold text-zinc-200">Roadmap</h2>
         <ul className="mt-3 list-inside list-disc space-y-1">
           {BRIDGE_ROADMAP.map((item) => (
             <li key={item}>{item}</li>

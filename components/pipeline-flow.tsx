@@ -1,4 +1,4 @@
-import { PIPELINE_STEPS, type PipelineStep } from "@/lib/pipeline";
+import { CLOUD_PIPELINE_STEPS, type PipelineStep } from "@/lib/pipeline";
 
 const runtimeLabel: Record<PipelineStep["runtime"], string> = {
   macos: "macOS only",
@@ -14,10 +14,16 @@ const runtimeClass: Record<PipelineStep["runtime"], string> = {
   web: "bg-cyan-500/15 text-cyan-200",
 };
 
-export function PipelineFlow({ compact = false }: { compact?: boolean }) {
+export function PipelineFlow({
+  compact = false,
+  steps = CLOUD_PIPELINE_STEPS,
+}: {
+  compact?: boolean;
+  steps?: PipelineStep[];
+}) {
   return (
     <ol className={compact ? "space-y-3" : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"}>
-      {PIPELINE_STEPS.map((step, index) => (
+      {steps.map((step, index) => (
         <li
           key={step.id}
           className="rounded-xl border border-white/10 bg-white/[0.03] p-4"

@@ -22,15 +22,15 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description:
-    "Capture Mac system audio with BlackHole, transcribe locally with Whisper, and get live Claude analysis. Privacy-first live audio intelligence.",
+    "Upload or record audio — cloud transcription and OpenRouter analysis. No BlackHole required. Optional macOS CLI for live system audio.",
   keywords: [
     "AudioLens",
-    "live transcription",
-    "macOS",
-    "BlackHole",
+    "audio transcription",
+    "cloud analysis",
+    "OpenRouter",
     "meeting copilot",
-    "Whisper",
-    "system audio",
+    "podcast summary",
+    "Whisper API",
   ],
   openGraph: {
     title: SITE_NAME,
