@@ -1,6 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  buildSegmentsForFile,
+  segmentsFromTimesliceBlobs,
+  shouldChunkFile,
+} from "@/lib/client/split-audio-blob";
+import { RECORDER_TIMESLICE_MS } from "@/lib/chunk-config";
+import { blobToBase64 } from "@/lib/chunk-api";
+import type { AudioSegment } from "@/lib/client/split-audio-blob";
 
 type ProcessResult = {
   transcript: string;
@@ -8,6 +16,12 @@ type ProcessResult = {
   analysis: string;
   transcriptionProvider: string;
   processedAt: string;
+};
+
+type ProgressState = {
+  phase: "transcribing" | "analyzing";
+  chunkIndex: number;
+  totalChunks: number;
 };
 
 type CaptureKind = "mic" | "display" | null;
@@ -27,46 +41,148 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+async function parseJsonError(res: Response): Promise<string> {
+  try {
+    const data = (await res.json()) as { error?: string };
+    return data.error ?? `Request failed (${res.status})`;
+  } catch {
+    return `Request failed (${res.status})`;
+  }
+}
+
 export function AudioProcessor() {
   const [file, setFile] = useState<File | null>(null);
   const [captureKind, setCaptureKind] = useState<CaptureKind>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<ProgressState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProcessResult | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recorderMimeRef = useRef<string>("audio/webm");
   const activeStreamRef = useRef<MediaStream | null>(null);
   const captureStartedAtRef = useRef<number | null>(null);
 
   const isCapturing = captureKind !== null;
   const isBusy = loading || isCapturing;
 
-  const processFile = useCallback(async (audioFile: File) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+  const processChunked = useCallback(async (segments: AudioSegment[]) => {
+    const sessionId = crypto.randomUUID();
+    const totalChunks = segments.length;
+    const transcriptParts: string[] = [];
+    let language = "unknown";
+    let transcriptionProvider = "openrouter";
 
-    const form = new FormData();
-    form.append("file", audioFile);
+    setProgress({ phase: "transcribing", chunkIndex: 0, totalChunks });
 
-    try {
-      const res = await fetch("/api/process-audio", {
+    for (let i = 0; i < segments.length; i++) {
+      setProgress({ phase: "transcribing", chunkIndex: i + 1, totalChunks });
+
+      const seg = segments[i];
+      const audioBase64 = await blobToBase64(seg.blob);
+
+      const res = await fetch("/api/process-audio-chunk", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          chunkIndex: i,
+          totalChunks,
+          audioBase64,
+          mimeType: seg.mimeType,
+          filename: seg.label,
+        }),
       });
-      const data = (await res.json()) as ProcessResult & { error?: string };
+
       if (!res.ok) {
-        throw new Error(data.error ?? `Request failed (${res.status})`);
+        throw new Error(
+          `Chunk ${i + 1}/${totalChunks} failed: ${await parseJsonError(res)}`
+        );
       }
-      setResult(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-    } finally {
-      setLoading(false);
+
+      const data = (await res.json()) as {
+        transcript: string;
+        language: string;
+        transcriptionProvider: string;
+      };
+
+      if (data.transcript?.trim()) {
+        transcriptParts.push(data.transcript.trim());
+      }
+      if (data.language && data.language !== "unknown") {
+        language = data.language;
+      }
+      transcriptionProvider = data.transcriptionProvider;
     }
+
+    const transcript = transcriptParts.join("\n\n").trim();
+    if (!transcript) {
+      throw new Error("No speech detected across all chunks.");
+    }
+
+    setProgress({ phase: "analyzing", chunkIndex: totalChunks, totalChunks });
+
+    const analyzeRes = await fetch("/api/analyze-text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript, language }),
+    });
+
+    if (!analyzeRes.ok) {
+      throw new Error(await parseJsonError(analyzeRes));
+    }
+
+    const analyzed = (await analyzeRes.json()) as {
+      analysis: string;
+      language: string;
+      processedAt: string;
+    };
+
+    setResult({
+      transcript,
+      language: analyzed.language || language,
+      analysis: analyzed.analysis,
+      transcriptionProvider,
+      processedAt: analyzed.processedAt,
+    });
   }, []);
+
+  const processFile = useCallback(
+    async (audioFile: File) => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      setProgress(null);
+
+      try {
+        if (!shouldChunkFile(audioFile)) {
+          const form = new FormData();
+          form.append("file", audioFile);
+          const res = await fetch("/api/process-audio", {
+            method: "POST",
+            body: form,
+          });
+          const data = (await res.json()) as ProcessResult & { error?: string };
+          if (!res.ok) {
+            throw new Error(data.error ?? `Request failed (${res.status})`);
+          }
+          setResult(data);
+          return;
+        }
+
+        const segments = await buildSegmentsForFile(audioFile);
+        await processChunked(segments);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+      } finally {
+        setLoading(false);
+        setProgress(null);
+      }
+    },
+    [processChunked]
+  );
 
   const stopActiveStream = useCallback(() => {
     activeStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -74,17 +190,36 @@ export function AudioProcessor() {
   }, []);
 
   const finishCapture = useCallback(
-    (blob: Blob, prefix: string) => {
+    (mimeType: string) => {
       stopActiveStream();
       setCaptureKind(null);
       captureStartedAtRef.current = null;
-      const recorded = new File([blob], `${prefix}-${Date.now()}.webm`, {
-        type: blob.type || "audio/webm",
-      });
+
+      const slices = chunksRef.current.filter((s) => s.size > 0);
+      if (slices.length === 0) {
+        setError("No audio was captured. Share a tab with audio enabled and try again.");
+        return;
+      }
+
+      const segments = segmentsFromTimesliceBlobs(slices, mimeType);
+      const recorded = new File(
+        [new Blob(slices, { type: mimeType })],
+        `capture-${Date.now()}.webm`,
+        { type: mimeType }
+      );
       setFile(recorded);
-      void processFile(recorded);
+
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      void processChunked(segments).catch((e) => {
+        setError(e instanceof Error ? e.message : "Processing failed.");
+      }).finally(() => {
+        setLoading(false);
+        setProgress(null);
+      });
     },
-    [processFile, stopActiveStream]
+    [processChunked, stopActiveStream]
   );
 
   const startMediaRecorder = useCallback(
@@ -102,18 +237,17 @@ export function AudioProcessor() {
         stream,
         mimeType ? { mimeType } : undefined
       );
+      const resolvedMime = recorder.mimeType || mimeType || "audio/webm";
+      recorderMimeRef.current = resolvedMime;
       chunksRef.current = [];
       recorder.ondataavailable = (ev) => {
         if (ev.data.size > 0) chunksRef.current.push(ev.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
-        finishCapture(blob, kind === "display" ? "tab-capture" : "recording");
+        finishCapture(resolvedMime);
       };
       mediaRecorderRef.current = recorder;
-      recorder.start(1000);
+      recorder.start(RECORDER_TIMESLICE_MS);
       captureStartedAtRef.current = Date.now();
       setCaptureKind(kind);
       setElapsedSec(0);
@@ -224,14 +358,20 @@ export function AudioProcessor() {
   };
 
   const safari = isSafariBrowser();
+  const progressPercent =
+    progress && progress.totalChunks > 0
+      ? progress.phase === "analyzing"
+        ? 100
+        : Math.round((progress.chunkIndex / progress.totalChunks) * 100)
+      : 0;
 
   return (
     <div className="space-y-8">
       <section className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
         <h2 className="text-lg font-semibold text-zinc-100">Upload or record</h2>
         <p className="mt-2 text-sm text-zinc-400">
-          mp3, m4a, wav, or webm — processed in the cloud. No BlackHole or local CLI
-          required for upload, mic, or tab/screen capture.
+          mp3, m4a, wav, or webm — processed in the cloud. Long YouTube-style captures
+          are split into ~75s chunks automatically (no single huge upload).
         </p>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -287,24 +427,29 @@ export function AudioProcessor() {
 
         <div className="mt-5 rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 text-sm text-zinc-300">
           <p className="font-medium text-violet-100">
-            Capture tab or screen audio — pick the tab/window where your video is playing
+            Long videos supported — processing in chunks
           </p>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-zinc-400">
+          <p className="mt-2 text-xs text-zinc-400">
+            Tab capture records in ~75 second segments. After you stop, each segment is
+            transcribed in order, then the full transcript is analyzed. A 30-minute
+            video typically means about 24 chunks and takes several minutes on the free
+            tier.
+          </p>
+          <ul className="mt-3 list-inside list-disc space-y-1 text-xs text-zinc-400">
             <li>
-              <strong className="text-zinc-300">Chrome tab</strong> — best for YouTube and
-              browser video; check &quot;Share tab audio&quot; in the picker.
+              <strong className="text-zinc-300">Chrome tab</strong> — best for YouTube;
+              enable &quot;Share tab audio&quot; in the picker.
             </li>
             <li>
-              <strong className="text-zinc-300">Window or entire screen</strong> — for VLC,
-              QuickTime, or native players; enable &quot;Share system audio&quot; when the
-              browser offers it.
+              <strong className="text-zinc-300">Window or entire screen</strong> — VLC,
+              QuickTime; enable system audio when offered.
             </li>
-            <li>Video from the share is not uploaded — only the audio track is recorded.</li>
+            <li>Only the audio track is uploaded — not your screen video.</li>
           </ul>
           {safari && (
             <p className="mt-3 text-xs text-amber-200/90">
-              Safari has limited display-audio support. For reliable tab capture, use Chrome
-              or Edge on desktop.
+              Safari has limited display-audio support. For reliable tab capture, use
+              Chrome or Edge on desktop.
             </p>
           )}
         </div>
@@ -312,20 +457,21 @@ export function AudioProcessor() {
         {file && (
           <p className="mt-4 text-xs text-zinc-500">
             Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+            {shouldChunkFile(file) && " — will be split client-side before upload"}
           </p>
         )}
         {captureKind === "mic" && (
           <p className="mt-4 flex items-center gap-2 text-sm text-amber-200/90">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-400" />
-            Mic recording {formatElapsed(elapsedSec)} — captures your microphone, not
-            system audio.
+            Mic recording {formatElapsed(elapsedSec)} — microphone only, not system
+            audio.
           </p>
         )}
         {captureKind === "display" && (
           <p className="mt-4 flex items-center gap-2 text-sm text-violet-200/90">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-violet-400" />
-            Capturing tab/screen audio {formatElapsed(elapsedSec)} — stop when your clip
-            ends.
+            Capturing tab/screen audio {formatElapsed(elapsedSec)} — long videos OK;
+            stop when finished.
           </p>
         )}
       </section>
@@ -339,7 +485,32 @@ export function AudioProcessor() {
         </div>
       )}
 
-      {loading && (
+      {loading && progress && (
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+          <div className="flex items-center justify-between gap-2 text-sm text-zinc-300">
+            <span>
+              {progress.phase === "transcribing"
+                ? `Transcribing chunk ${progress.chunkIndex} of ${progress.totalChunks}…`
+                : "Analyzing full transcript…"}
+            </span>
+            <span className="text-xs text-zinc-500">{progressPercent}%</span>
+          </div>
+          <div
+            className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full bg-cyan-400 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {loading && !progress && (
         <p className="text-center text-sm text-zinc-400">
           Transcribing and analyzing in the cloud…
         </p>

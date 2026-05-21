@@ -1,4 +1,7 @@
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+import { SINGLE_UPLOAD_MAX_BYTES } from "@/lib/chunk-config";
+
+/** Single-shot multipart upload; larger files use client chunking + JSON routes */
+export const MAX_UPLOAD_BYTES = SINGLE_UPLOAD_MAX_BYTES;
 
 export const ACCEPTED_AUDIO_TYPES = new Set([
   "audio/mpeg",

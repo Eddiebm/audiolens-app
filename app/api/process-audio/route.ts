@@ -17,36 +17,54 @@ function isAcceptedFile(file: File): boolean {
   return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
+
 export async function POST(request: Request) {
   try {
+    const contentLength = request.headers.get("content-length");
+    if (contentLength) {
+      const bytes = Number(contentLength);
+      if (Number.isFinite(bytes) && bytes > MAX_UPLOAD_BYTES) {
+        return jsonError(
+          `Upload too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB on this deployment).`,
+          413
+        );
+      }
+    }
+
     if (!openRouterApiKey()) {
-      return NextResponse.json(
-        {
-          error:
-            "Server misconfiguration: OPENROUTER_API_KEY is required on Vercel.",
-        },
-        { status: 503 }
+      return jsonError(
+        "Server misconfiguration: OPENROUTER_API_KEY is required on Vercel.",
+        503
       );
     }
 
-    const form = await request.formData();
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return jsonError(
+        `Could not read upload (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB).`,
+        413
+      );
+    }
+
     const file = form.get("file");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Missing audio file." }, { status: 400 });
+      return jsonError("Missing audio file.", 400);
     }
 
     if (!isAcceptedFile(file)) {
-      return NextResponse.json(
-        { error: "Unsupported format. Use mp3, m4a, wav, or webm." },
-        { status: 400 }
-      );
+      return jsonError("Unsupported format. Use mp3, m4a, wav, or webm.", 400);
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json(
-        { error: `File too large (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB).` },
-        { status: 400 }
+      return jsonError(
+        `File too large for single upload (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Use the Analyze page — files over 3 MB are split automatically in the browser.`,
+        413
       );
     }
 
@@ -71,6 +89,6 @@ export async function POST(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Processing failed.";
     console.error("[process-audio]", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return jsonError(message, 500);
   }
 }
