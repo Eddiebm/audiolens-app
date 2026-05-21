@@ -22,24 +22,30 @@ export default function Home() {
         />
         <div className="relative mx-auto max-w-3xl text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-cyan-400/90">
-            Cloud · tab capture · no BlackHole
+            Live intelligence for what you&apos;re listening to
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl sm:leading-[1.1]">
-            Upload, mic, or{" "}
-            <span className="text-cyan-300">capture desktop video audio</span> in the
-            browser
+            Lectures, YouTube, and meetings —{" "}
+            <span className="text-cyan-300">understood in real time</span>
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-            {SITE_NAME} turns meetings, podcasts, YouTube, and voice notes into a transcript
-            plus concise AI analysis. Share a Chrome tab or screen with audio — or upload a
-            file — no BlackHole install required for the web path.
+            {SITE_NAME} captures what you&apos;re hearing (browser tab or Mac system
+            audio), transcribes it, and returns structured notes — not another generic file
+            uploader. Built for long-form listening: courses, investor calls, sermons, and
+            deep YouTube sessions.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/youtube"
+              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-violet-500 px-6 text-sm font-semibold text-white transition hover:bg-violet-400"
+            >
+              Capture YouTube tab
+            </Link>
             <Link
               href="/analyze"
               className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-cyan-500 px-6 text-sm font-semibold text-[#041018] transition hover:bg-cyan-400"
             >
-              Analyze audio
+              Upload or advanced
             </Link>
             <a
               href="#mac-cli"

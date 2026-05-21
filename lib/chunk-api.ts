@@ -17,12 +17,15 @@ export type ProcessAudioChunkResponse = {
 export type AnalyzeTextRequest = {
   transcript: string;
   language?: string;
+  presetId?: string;
+  instruction?: string;
 };
 
 export type AnalyzeTextResponse = {
   analysis: string;
   language: string;
   processedAt: string;
+  usage?: { promptTokens: number; completionTokens: number };
 };
 
 export async function blobToBase64(blob: Blob): Promise<string> {

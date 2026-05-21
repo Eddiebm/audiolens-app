@@ -14,7 +14,7 @@ export async function parseProcessAudioResponse<T extends { error?: string }>(
       /request entity too large/i.test(trimmed)
     ) {
       throw new Error(
-        "Recording is too large to upload. Stop capture sooner (about 3 minutes max) or use a smaller file."
+        "Upload failed (payload too large). Long captures are split automatically on the Analyze page — retry or use shorter segments."
       );
     }
     const preview = trimmed.slice(0, 120);

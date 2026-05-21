@@ -42,12 +42,19 @@ export async function POST(request: Request) {
     }
 
     const language = body.language?.trim() || "unknown";
-    const analysis = await analyzeTranscript(transcript, language);
+    const { analysis, usage } = await analyzeTranscript(transcript, language, {
+      presetId: body.presetId,
+      instruction: body.instruction,
+    });
 
     return NextResponse.json({
       analysis,
       language,
       processedAt: new Date().toISOString(),
+      usage: {
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Analysis failed.";

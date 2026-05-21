@@ -2,9 +2,9 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/site";
 
 const nav = [
+  { href: "/youtube", label: "YouTube" },
   { href: "/analyze", label: "Analyze" },
   { href: "/dashboard", label: "History" },
-  { href: "/#how-it-works", label: "How it works" },
 ];
 
 export function SiteHeader() {

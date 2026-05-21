@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       file.name
     );
 
-    const analysis = await analyzeTranscript(transcript, language);
+    const { analysis, usage } = await analyzeTranscript(transcript, language);
 
     return NextResponse.json({
       transcript,
@@ -85,6 +85,10 @@ export async function POST(request: Request) {
       analysis,
       transcriptionProvider: provider,
       processedAt: new Date().toISOString(),
+      usage: {
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Processing failed.";

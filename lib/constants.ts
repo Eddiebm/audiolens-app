@@ -24,7 +24,6 @@ export const OPENROUTER_MODEL_DEFAULT =
 export const OPENROUTER_TRANSCRIBE_MODEL =
   process.env.OPENROUTER_TRANSCRIBE_MODEL ?? "google/gemini-2.5-flash";
 
-export const ANALYSIS_SYSTEM_PROMPT = `You are analyzing audio that has been transcribed into text.
-Provide concise analysis: key claims, context, tone, anything notable.
-Stay under 200 words unless the content demands more.
-If the transcript is too short or ambiguous, say so briefly.`;
+import { ANALYSIS_PRESETS } from "@/lib/prompt-presets";
+
+export const ANALYSIS_SYSTEM_PROMPT = ANALYSIS_PRESETS[0].systemPrompt;
