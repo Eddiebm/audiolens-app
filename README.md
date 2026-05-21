@@ -28,7 +28,7 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
    - **Chrome tab** — best for YouTube and in-browser video; enable **Share tab audio**.
    - **Window or entire screen** — for VLC, native players; enable **Share system audio** when offered (platform-dependent).
 3. Play your video, then click **Stop & analyze** when done.
-4. Audio is sent to `POST /api/process-audio` as webm (same pipeline as upload/mic).
+4. Audio is recorded in **~75s segments**, each sent to `POST /api/process-audio-chunk`, then the combined transcript goes to `POST /api/analyze-text` (text only — avoids oversized requests).
 
 **Browser notes:** Chrome and Edge on desktop are most reliable. Safari has limited display-audio support. If no audio track is shared, the app prompts you to re-share with audio enabled. Cancelling the picker shows a friendly message (`NotAllowedError`).
 
@@ -51,15 +51,32 @@ Browsers cannot silently mirror macOS system output like BlackHole. The **web ca
 
 ```
 Browser (any OS)
-    │  multipart upload · MediaRecorder (mic) · getDisplayMedia → webm
+    │  small file → multipart POST /api/process-audio (≤3 MB)
+    │  long capture / large file → split client-side (~75s or ≤2 MB raw per chunk)
     ▼
-Vercel — POST /api/process-audio
+Vercel — POST /api/process-audio-chunk  (per segment, maxDuration 60s)
     │  transcribe: OpenAI Whisper API (if OPENAI_API_KEY)
     │           or OpenRouter multimodal (OPENROUTER_API_KEY)
-    │  analyze: OpenRouter chat (text only)
+    ▼
+Client accumulates transcript text
+    ▼
+Vercel — POST /api/analyze-text  (full transcript, text-only JSON)
+    │  analyze: OpenRouter chat
     ▼
 JSON { transcript, language, analysis }
 ```
+
+### Long audio / Vercel Hobby limits
+
+| Constraint | Hobby (typical) | Notes |
+|------------|-----------------|-------|
+| Request body | ~4.5 MB | Chunks capped at **2 MB raw** (~2.7 MB base64 JSON) |
+| Function duration | 60s default (`maxDuration` on API routes) | One ~75s chunk per invocation |
+| Practical length | **~30–60 min** tab capture | ~24–48 sequential chunk requests; slower but avoids 413 / JSON parse errors |
+| Large file upload | Up to **~12 MB** in-browser split | Bigger files: use tab capture or trim first |
+| Analysis | 120k chars max transcript | Very dense speech may need shorter clips |
+
+**Pro:** raise `maxDuration` to 300 on chunk routes in `app/api/process-audio-chunk/route.ts` if your plan allows longer serverless runs.
 
 | Layer | Where |
 |-------|--------|

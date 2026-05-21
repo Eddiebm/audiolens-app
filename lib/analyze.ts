@@ -27,7 +27,7 @@ export async function analyzeTranscript(
     },
     body: JSON.stringify({
       model: OPENROUTER_MODEL_DEFAULT,
-      max_tokens: 768,
+      max_tokens: 2048,
       messages: [
         { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
         { role: "user", content: userMsg },
