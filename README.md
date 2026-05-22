@@ -13,6 +13,10 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | `/analyze` | Upload, mic, or desktop/tab capture → transcript + analysis |
 | `/dashboard` | Import session JSON history (CLI bridge) |
 
+## Features
+
+- **Read aloud** — after analysis on `/analyze` and `/youtube`, use **Read summary**, **Read full analysis**, or **Read transcript** (browser Web Speech API; pause/stop and speed 0.9×–1.1×). macOS CLI users can also `say -f exported.txt` on saved text.
+
 ## Capture paths
 
 | Path | Best for | BlackHole? |

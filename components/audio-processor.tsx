@@ -41,6 +41,7 @@ import {
   TAB_ONLY_REJECT_MESSAGE,
   validateBrowserTabSurface,
 } from "@/lib/client/tab-capture";
+import { ReadAloudControls } from "@/components/read-aloud-controls";
 import type { ProcessResult, SectionAnalysis } from "@/lib/types";
 
 type ProgressState = {
@@ -1069,6 +1070,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
               — rough estimate, not a bill.
             </p>
           )}
+
+          <ReadAloudControls result={result} />
 
           {result.summary && result.sections?.length ? (
             <section className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
