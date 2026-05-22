@@ -61,7 +61,7 @@ export function SessionCostDisplay({ cost }: SessionCostDisplayProps) {
           <dt>
             Session total ({accuracyLabel(cost.sessionAccuracy).toLowerCase()})
           </dt>
-          <dd className="font-mono text-cyan-200">
+          <dd className="font-mono text-zinc-200">
             {formatCostUsd(cost.sessionTotalUsd)}
           </dd>
         </div>

@@ -17,11 +17,11 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight">Session history</h1>
         <p className="mt-2 text-sm text-zinc-400">
           Import JSON from the{" "}
-          <Link href="/#mac-cli" className="text-cyan-400 hover:underline">
+          <Link href="/#mac-cli" className="text-zinc-300 underline hover:text-white">
             macOS CLI
           </Link>{" "}
           (when export is enabled). For new analysis, use{" "}
-          <Link href="/analyze" className="text-cyan-400 hover:underline">
+          <Link href="/analyze" className="text-zinc-300 underline hover:text-white">
             Analyze audio
           </Link>
           .
@@ -44,7 +44,7 @@ export default function DashboardPage() {
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-400">
           Your transcripts and analyses will live here once we ship cloud persistence.
           For now, download your results after each session using the export button on{" "}
-          <Link href="/analyze" className="text-cyan-400 hover:underline">
+          <Link href="/analyze" className="text-zinc-300 underline hover:text-white">
             /analyze
           </Link>
           .

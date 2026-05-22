@@ -89,7 +89,7 @@ export function ReadAloudControls({ result }: Props) {
 
   return (
     <div
-      className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-4"
+      className="rounded border border-white/[0.1] bg-white/[0.05] p-4"
       role="region"
       aria-label="Read aloud"
     >
@@ -99,7 +99,7 @@ export function ReadAloudControls({ result }: Props) {
             type="button"
             onClick={() => speak("summary")}
             disabled={readAloud.speaking && !readAloud.paused}
-            className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/25 disabled:opacity-50"
+            className="rounded border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.05] disabled:opacity-50"
           >
             Read summary
           </button>
@@ -109,7 +109,7 @@ export function ReadAloudControls({ result }: Props) {
             type="button"
             onClick={() => speak("full")}
             disabled={readAloud.speaking && !readAloud.paused}
-            className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-3 py-1.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/25 disabled:opacity-50"
+            className="rounded border border-white/[0.1] bg-white/[0.05] px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.05] disabled:opacity-50"
           >
             Read full analysis
           </button>
@@ -119,7 +119,7 @@ export function ReadAloudControls({ result }: Props) {
             type="button"
             onClick={() => speak("transcript")}
             disabled={readAloud.speaking && !readAloud.paused}
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
+            className="rounded border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
             title={
               transcriptLong
                 ? "Long transcript — you will be asked to confirm"
@@ -135,14 +135,14 @@ export function ReadAloudControls({ result }: Props) {
             <button
               type="button"
               onClick={readAloud.togglePause}
-              className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
+              className="rounded border border-white/20 px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
             >
               {readAloud.paused ? "Resume" : "Pause"}
             </button>
             <button
               type="button"
               onClick={readAloud.stop}
-              className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-200 hover:bg-red-500/20"
+              className="rounded border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-sm text-red-200 hover:bg-red-500/20"
             >
               Stop
             </button>
@@ -158,7 +158,7 @@ export function ReadAloudControls({ result }: Props) {
             onClick={() => readAloud.setRate(r)}
             className={`rounded px-2 py-0.5 ${
               readAloud.rate === r
-                ? "bg-violet-500/30 text-violet-100"
+                ? "bg-white/[0.05] text-zinc-300"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
             aria-pressed={readAloud.rate === r}
@@ -168,7 +168,7 @@ export function ReadAloudControls({ result }: Props) {
         ))}
         {statusLabel && (
           <span
-            className="font-medium text-violet-300"
+            className="font-medium text-zinc-300"
             aria-live="polite"
           >
             {statusLabel}

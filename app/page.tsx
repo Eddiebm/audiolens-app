@@ -11,90 +11,68 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 export default function Home() {
   return (
     <main>
-      <section className="relative overflow-hidden px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34,211,238,0.25), transparent)",
-          }}
-        />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-cyan-400/90">
-            Live intelligence for what you&apos;re listening to
-          </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl sm:leading-[1.1]">
+      <section className="px-4 pb-20 pt-20 sm:px-6 sm:pt-28">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl sm:leading-[1.1]">
             Lectures, YouTube, and meetings —{" "}
-            <span className="text-cyan-300">structured notes in minutes</span>
+            structured notes in minutes
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-zinc-400">
-            {SITE_NAME} captures what you&apos;re hearing (browser tab or Mac system
-            audio), transcribes it, and returns structured notes — not another generic file
-            uploader. Built for long-form listening: courses, investor calls, sermons, and
-            deep YouTube sessions.
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-500">
+            Captures what you&apos;re hearing, transcribes it, and returns structured notes.
+            Built for long-form listening: courses, investor calls, sermons, and deep YouTube
+            sessions.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/youtube"
-              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-violet-500 px-6 text-sm font-semibold text-white transition hover:bg-violet-400"
-            >
-              Capture YouTube tab
-            </Link>
+          <div className="mt-10 flex flex-wrap gap-3">
             <Link
               href="/analyze"
-              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-cyan-500 px-6 text-sm font-semibold text-[#041018] transition hover:bg-cyan-400"
+              className="inline-flex h-10 items-center rounded bg-white px-5 text-sm font-semibold text-black transition hover:bg-zinc-100"
             >
-              Upload or advanced
+              Start analyzing
+            </Link>
+            <Link
+              href="/youtube"
+              className="inline-flex h-10 items-center rounded border border-white/15 px-5 text-sm font-medium text-zinc-300 transition hover:border-white/30 hover:text-white"
+            >
+              YouTube mode
             </Link>
             <a
               href="#mac-cli"
-              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full border border-white/15 px-6 text-sm font-medium text-zinc-300 transition hover:bg-white/5"
+              className="inline-flex h-10 items-center px-5 text-sm font-medium text-zinc-600 transition hover:text-zinc-400"
             >
-              macOS system audio (CLI)
+              macOS CLI →
             </a>
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
-            {SITE_TAGLINE}. API keys stay on the server (Vercel env vars).
-          </p>
         </div>
       </section>
 
       <section
         id="problem"
-        className="border-y border-white/10 bg-white/[0.02] px-4 py-16 sm:px-6"
+        className="border-t border-white/[0.07] px-4 py-16 sm:px-6"
       >
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-sm font-medium uppercase tracking-widest text-zinc-500">
-            The problem
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-xl text-zinc-200">
+          <p className="max-w-2xl text-base text-zinc-500">
             You have a recording, webinar, or voice memo — and you want meaning, not just
             raw text.
           </p>
-          <ul className="mx-auto mt-10 grid max-w-3xl gap-4 text-sm text-zinc-400 sm:grid-cols-3">
-            <li className="rounded-lg border border-white/10 p-4">
+          <ul className="mt-8 grid max-w-3xl gap-px border border-white/[0.07] text-sm text-zinc-500 sm:grid-cols-3">
+            <li className="bg-black p-5">
               Installing BlackHole and a Python CLI blocks non-Mac users entirely.
             </li>
-            <li className="rounded-lg border border-white/10 p-4">
+            <li className="border-t border-white/[0.07] bg-black p-5 sm:border-l sm:border-t-0">
               Local Whisper is great for privacy but heavy to set up on every device.
             </li>
-            <li className="rounded-lg border border-white/10 p-4">
+            <li className="border-t border-white/[0.07] bg-black p-5 sm:border-l sm:border-t-0">
               Transcripts without analysis leave you scrolling instead of deciding.
             </li>
           </ul>
         </div>
       </section>
 
-      <section id="solution" className="px-4 py-16 sm:px-6">
+      <section id="solution" className="border-t border-white/[0.07] px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-sm font-medium uppercase tracking-widest text-zinc-500">
-            Cloud path (primary)
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-xl text-zinc-200">
+          <p className="max-w-2xl text-sm text-zinc-600">
             Upload mp3, m4a, wav, or webm — record your mic — or capture a tab/screen while
-            a video plays (enable shared audio in the browser picker). We transcribe in the
-            cloud and analyze with OpenRouter.
+            a video plays. Transcribed in the cloud, analyzed with OpenRouter.
           </p>
           <div className="mt-10">
             <PipelineFlow steps={CLOUD_PIPELINE_STEPS} />
@@ -104,19 +82,19 @@ export default function Home() {
 
       <section
         id="how-it-works"
-        className="border-t border-white/10 px-4 py-16 sm:px-6"
+        className="border-t border-white/[0.07] px-4 py-16 sm:px-6"
       >
         <div className="mx-auto max-w-3xl">
-          <h2 className="text-lg font-semibold text-zinc-100">
+          <h2 className="text-sm font-medium text-zinc-400">
             Honest limitation: system audio
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
             {SYSTEM_AUDIO_LIMITATION}
           </p>
-          <ul className="mt-6 space-y-2 text-sm text-zinc-500">
+          <ul className="mt-4 space-y-1 text-sm text-zinc-600">
             {BRIDGE_ROADMAP.map((item) => (
               <li key={item} className="flex gap-2">
-                <span className="text-cyan-500">→</span>
+                <span>→</span>
                 {item}
               </li>
             ))}
@@ -126,22 +104,21 @@ export default function Home() {
 
       <section
         id="mac-cli"
-        className="border-t border-white/10 bg-white/[0.02] px-4 py-16 sm:px-6"
+        className="border-t border-white/[0.07] px-4 py-16 sm:px-6"
       >
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-lg font-semibold text-zinc-100">
-            Advanced: macOS live system audio (CLI)
+          <h2 className="text-sm font-medium text-zinc-400">
+            macOS live system audio (CLI)
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-            Optional path for power users who want{" "}
-            <strong className="text-zinc-200">live</strong> capture of everything playing
-            on the Mac — BlackHole, local faster-whisper, terminal output. Repo:{" "}
-            <code className="text-cyan-300/80">~/audiolens</code>.
+          <p className="mt-2 max-w-2xl text-sm text-zinc-600">
+            Optional path for power users who want live capture of everything playing on the
+            Mac — BlackHole, local faster-whisper, terminal output. Repo:{" "}
+            <code className="font-mono text-zinc-400">~/audiolens</code>.
           </p>
           <div className="mt-8">
             <PipelineFlow steps={CLI_PIPELINE_STEPS} compact />
           </div>
-          <pre className="mt-6 overflow-x-auto rounded-xl border border-white/10 bg-black/50 p-4 font-mono text-xs text-cyan-100/90">
+          <pre className="mt-6 overflow-x-auto border border-white/[0.07] bg-white/[0.02] p-4 font-mono text-xs text-zinc-400">
 {`cd ~/audiolens
 ./setup.sh
 export OPENROUTER_API_KEY='...'   # or ANTHROPIC_API_KEY

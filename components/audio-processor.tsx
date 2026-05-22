@@ -910,22 +910,20 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   return (
     <div className="space-y-8">
       {youtubeMode ? (
-        <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6">
-          <h2 className="text-center text-lg font-semibold text-emerald-100">
-            Paste YouTube URL
-          </h2>
-          <p className="mx-auto mt-2 max-w-lg text-center text-sm text-zinc-400">
-            Uses YouTube captions when available (instant). For videos without
-            captions, use tab capture below.
+        <section className="border border-white/[0.07] p-6">
+          <h2 className="text-sm font-medium text-zinc-300">Paste YouTube URL</h2>
+          <p className="mt-1 text-xs text-zinc-600">
+            Uses YouTube captions when available (instant). For videos without captions, use
+            tab capture below.
           </p>
-          <div className="mx-auto mt-4 flex max-w-xl flex-col gap-3 sm:flex-row">
+          <div className="mt-4 flex gap-2">
             <input
               type="url"
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               placeholder="https://www.youtube.com/watch?v=…"
               disabled={isBusy}
-              className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-400/50 focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
+              className="min-w-0 flex-1 rounded border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:border-white/25 focus:outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !isBusy) void analyzeYoutubeUrl();
               }}
@@ -934,39 +932,31 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
               type="button"
               onClick={() => void analyzeYoutubeUrl()}
               disabled={isBusy || !youtubeUrl.trim()}
-              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center justify-center rounded bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-zinc-100 disabled:opacity-30"
             >
-              Analyze link
+              Analyze
             </button>
           </div>
-          <p className="mx-auto mt-3 max-w-lg text-center text-xs text-zinc-500">
-            Analysis only — no Whisper chunks. Private, unlisted, or live streams
-            may fail if captions are not public.
+          <p className="mt-2 text-xs text-zinc-700">
+            Analysis only — no Whisper chunks. Private or live streams may fail if captions
+            are not public.
           </p>
         </section>
       ) : null}
 
       {youtubeMode ? (
-        <section className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-8">
-          <h2 className="text-center text-xl font-semibold text-violet-100">
+        <section className="border border-white/[0.07] p-6">
+          <h2 className="text-sm font-medium text-zinc-300">
             Capture YouTube tab audio
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-center text-sm font-semibold text-zinc-100">
-            <strong>Isolated capture:</strong> only audio from the tab you
-            select. Room noise and other apps are <strong>NOT</strong> recorded.
+          <p className="mt-1 text-xs text-zinc-600">
+            Isolated capture — only audio from the tab you select. Room noise and other apps
+            are not recorded.
           </p>
-          <ol className="mx-auto mt-4 max-w-md list-decimal space-y-2 pl-6 text-sm text-zinc-300">
-            <li>
-              Open your video in a <strong>YouTube tab</strong> (Chrome or Edge)
-            </li>
-            <li>
-              Click below and share <strong>THIS tab</strong> — enable{" "}
-              <strong>Share tab audio</strong>
-            </li>
-            <li>
-              Never pick <strong>Entire screen</strong> or a{" "}
-              <strong>Window</strong> — those include other sounds
-            </li>
+          <ol className="mt-4 space-y-1 text-xs text-zinc-600 list-decimal pl-4">
+            <li>Open your video in a YouTube tab (Chrome or Edge)</li>
+            <li>Click below and share that tab — enable Share tab audio</li>
+            <li>Never pick Entire screen or a Window</li>
           </ol>
           <p className="mx-auto mt-4 max-w-lg text-center text-xs text-zinc-500">
             The browser picker may still show screen options — we reject Entire
@@ -975,107 +965,77 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           </p>
           <p className="mx-auto mt-3 max-w-lg text-center text-xs text-zinc-500">
             Not YouTube?{" "}
-            <a href="/analyze" className="text-violet-300 hover:underline">
+            <a href="/analyze" className="text-zinc-400 underline hover:text-zinc-200">
               Use Analyze audio
             </a>{" "}
             for any other source.
           </p>
-          <div className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-4">
-            <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-zinc-100">
+          <div className="mt-5 flex items-center gap-3 border-t border-white/[0.07] pt-5">
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-zinc-400">
               <input
                 type="checkbox"
                 checked={fastListen}
                 onChange={(e) => setFastListen(e.target.checked)}
                 disabled={isBusy}
-                className="h-4 w-4 rounded border-white/20 bg-black/40 text-amber-400 focus:ring-amber-400/50"
+                className="h-3.5 w-3.5 rounded-sm border-white/20 bg-black accent-white"
               />
               Transcript only
             </label>
-            {fastListen ? (
-              <p className="text-center text-xs text-amber-100/90">
-                Tip: Play YouTube at 1.5×–2× for faster capture. Analysis uses
-                one quick pass (5 bullets + 3 actions this week).
-              </p>
-            ) : (
-              <p className="text-center text-xs text-zinc-500">
-                Skip AI analysis — faster and cheaper.
-              </p>
-            )}
+            <span className="text-xs text-zinc-700">
+              {fastListen ? "Play at 1.5×–2× for faster capture" : "Skip AI analysis — faster and cheaper"}
+            </span>
           </div>
-          <div className="mt-8 flex flex-col items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             {!isCapturing ? (
               <>
                 <button
                   type="button"
-                  onClick={() => void runPreflightTest()}
-                  disabled={isBusy}
-                  className="text-sm text-zinc-400 underline hover:text-zinc-200 disabled:opacity-50"
-                >
-                  {preflight === "testing"
-                    ? "Testing tab audio (5s)…"
-                    : "Test tab audio (5s)"}
-                </button>
-                {preflight === "ok" && (
-                  <p className="text-sm text-emerald-400">
-                    Tab-only capture verified — audio detected
-                  </p>
-                )}
-                {preflight === "fail" && (
-                  <p className="text-sm text-rose-400">
-                    Test failed — check tab selection and playback
-                  </p>
-                )}
-                <button
-                  type="button"
                   onClick={() => void startDisplayCapture()}
                   disabled={loading}
-                  className="inline-flex min-h-14 min-w-[280px] items-center justify-center rounded-full bg-violet-500 px-8 text-base font-semibold text-white transition hover:bg-violet-400 disabled:opacity-50"
+                  className="inline-flex h-10 items-center justify-center rounded bg-white px-6 text-sm font-semibold text-black transition hover:bg-zinc-100 disabled:opacity-30"
                 >
                   Capture YouTube tab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runPreflightTest()}
+                  disabled={isBusy}
+                  className="inline-flex h-10 items-center rounded border border-white/10 px-4 text-sm text-zinc-600 hover:border-white/20 hover:text-zinc-400 disabled:opacity-30"
+                >
+                  {preflight === "testing" ? "Testing (5s)…" : "Test audio (5s)"}
                 </button>
               </>
             ) : (
               <button
                 type="button"
                 onClick={stopCapture}
-                className="inline-flex min-h-14 items-center justify-center rounded-full bg-red-500 px-8 text-base font-semibold text-white hover:bg-red-400"
+                className="inline-flex h-10 items-center justify-center rounded bg-red-600 px-6 text-sm font-semibold text-white hover:bg-red-500"
               >
                 Stop & analyze
               </button>
             )}
+            {preflight === "ok" && <span className="text-xs text-zinc-400">Audio OK</span>}
+            {preflight === "fail" && <span className="text-xs text-zinc-600">Test failed</span>}
           </div>
           {isCapturing && (
-            <p className="mt-6 text-center font-mono text-2xl tabular-nums text-cyan-300">
+            <p className="mt-4 font-mono text-xl tabular-nums text-white">
               {formatElapsed(elapsedSec)}
-            </p>
-          )}
-          {isCapturing && (
-            <p className="mt-2 text-center text-xs text-zinc-500">
-              ~{estChunks} chunk{estChunks === 1 ? "" : "s"} expected at this
-              length
+              <span className="ml-3 text-xs font-sans text-zinc-600">~{estChunks} chunk{estChunks === 1 ? "" : "s"}</span>
             </p>
           )}
         </section>
       ) : null}
 
       {(showAdvanced || !youtubeMode) && (
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-6">
+        <section className="border border-white/[0.07] p-6">
           {!youtubeMode && (
-            <>
-              <h2 className="text-lg font-semibold text-zinc-100">
-                Upload or record
-              </h2>
-              <p className="mt-2 text-sm text-zinc-400">
-                mp3, m4a, wav, or webm — long captures split into ~75s chunks.
-              </p>
-            </>
+            <p className="mb-6 text-xs text-zinc-600">
+              mp3, m4a, wav, or webm — long captures split into ~75s chunks.
+            </p>
           )}
 
           <div className="mb-6">
-            <label className="mb-3 block text-sm font-medium text-zinc-300">
-              What are you listening to?
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="flex border-b border-white/[0.08]">
               {ANALYSIS_PRESETS.map((p) => (
                 <button
                   key={p.id}
@@ -1083,23 +1043,23 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   onClick={() => setPresetId(p.id as AnalysisPresetId)}
                   disabled={isBusy}
                   className={[
-                    "rounded-lg border p-3 text-left text-sm transition disabled:opacity-50",
+                    "-mb-px border-b-2 px-4 py-2.5 text-sm transition disabled:opacity-30",
                     presetId === p.id
-                      ? "border-cyan-400/60 bg-cyan-500/15 text-zinc-100"
-                      : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:bg-white/[0.06]",
+                      ? "border-white font-medium text-white"
+                      : "border-transparent text-zinc-600 hover:text-zinc-400",
                   ].join(" ")}
                 >
-                  <p className="font-medium">{PRESET_LABELS[p.id as AnalysisPresetId]}</p>
-                  <p className="mt-1 text-xs leading-snug opacity-75">
-                    {PRESET_DESCRIPTIONS[p.id as AnalysisPresetId]}
-                  </p>
+                  {PRESET_LABELS[p.id as AnalysisPresetId]}
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-zinc-600">
+              {PRESET_DESCRIPTIONS[presetId]}
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20">
+            <label className="inline-flex cursor-pointer items-center justify-center rounded border border-white/15 px-5 py-2 text-sm font-medium text-zinc-300 transition hover:border-white/30 hover:text-white">
               Choose file
               <input
                 type="file"
@@ -1122,7 +1082,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   type="button"
                   onClick={() => void startMicRecording()}
                   disabled={loading}
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded border border-white/15 px-5 py-2 text-sm font-medium text-zinc-400 transition hover:border-white/30 hover:text-zinc-200 disabled:opacity-30"
                 >
                   Record from mic
                 </button>
@@ -1130,7 +1090,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   type="button"
                   onClick={() => void runPreflightTest()}
                   disabled={isBusy}
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm text-zinc-400 hover:bg-white/5 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded border border-white/10 px-5 py-2 text-sm text-zinc-600 hover:border-white/20 hover:text-zinc-400 disabled:opacity-30"
                 >
                   Test tab audio (5s)
                 </button>
@@ -1138,7 +1098,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   type="button"
                   onClick={() => void startDisplayCapture()}
                   disabled={loading}
-                  className="inline-flex items-center justify-center rounded-full border border-violet-500/40 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded border border-white/20 px-5 py-2 text-sm font-medium text-zinc-200 transition hover:border-white/40 hover:text-white disabled:opacity-30"
                 >
                   Capture tab / screen audio
                 </button>
@@ -1147,7 +1107,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             {!isCapturing && (
               <p className="w-full text-xs text-zinc-500">
                 Analyzing a YouTube video?{" "}
-                <a href="/youtube" className="text-violet-300 hover:underline">
+                <a href="/youtube" className="text-zinc-400 underline hover:text-zinc-200">
                   Use YouTube mode
                 </a>{" "}
                 for caption-based instant analysis.
@@ -1157,7 +1117,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
               <button
                 type="button"
                 onClick={stopCapture}
-                className="inline-flex items-center justify-center rounded-full bg-red-500/90 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-400"
+                className="inline-flex items-center justify-center rounded bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-500"
               >
                 Stop & analyze
               </button>
@@ -1167,7 +1127,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                 type="button"
                 onClick={() => void processFile(file, presetId)}
                 disabled={loading}
-                className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-[#041018] hover:bg-cyan-400 disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded bg-white px-6 py-2 text-sm font-semibold text-black hover:bg-zinc-100 disabled:opacity-30"
               >
                 {loading ? "Processing…" : "Transcribe & analyze"}
               </button>
@@ -1175,19 +1135,14 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           </div>
 
           {!youtubeMode && (
-            <div className="mt-5 rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 text-sm text-zinc-300">
-              <p className="font-medium text-violet-100">
-                Long videos — chunked pipeline
-              </p>
-              <p className="mt-2 text-xs text-zinc-400">
-                Auto-stops after ~50s silence when the video ends. Safety cap: 2
-                hours. Retries on transient server errors (413/504).
-              </p>
-            </div>
+            <p className="mt-5 text-xs text-zinc-600">
+              Auto-stops after silence when the video ends. Safety cap: 2 hours.
+              Retries on server errors.
+            </p>
           )}
 
           {preflight === "ok" && (
-            <p className="mt-3 text-sm text-emerald-400">Preflight: tab audio OK</p>
+            <p className="mt-3 text-sm text-zinc-400">Preflight: tab audio OK</p>
           )}
           {preflight === "fail" && (
             <p className="mt-3 text-sm text-rose-400">Preflight: no audio detected</p>
@@ -1199,8 +1154,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             </p>
           )}
           {captureKind === "display" && (
-            <p className="mt-4 flex items-center gap-2 text-sm text-violet-200/90">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-violet-400" />
+            <p className="mt-4 flex items-center gap-2 text-sm text-zinc-400">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white/60" />
               Recording {formatElapsed(elapsedSec)} · ~{estChunks} chunks ·
               auto-stop on silence
             </p>
@@ -1260,22 +1215,20 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       )}
 
       {loading && progress && (
-        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
-          <div className="flex items-center justify-between gap-2 text-sm text-zinc-300">
+        <div className="border border-white/[0.07] p-5">
+          <div className="flex items-center justify-between gap-2 text-sm text-zinc-400">
             <span>{progressLabel}</span>
-            <span className="font-mono text-xs text-zinc-500">
-              {progressPercent}%
-            </span>
+            <span className="font-mono text-xs text-zinc-600">{progressPercent}%</span>
           </div>
           <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"
+            className="mt-3 h-px overflow-hidden bg-white/10"
             role="progressbar"
             aria-valuenow={progressPercent}
             aria-valuemin={0}
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full bg-cyan-400 transition-all duration-300"
+              className="h-full bg-white transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -1300,9 +1253,9 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           <ReadAloudControls result={result} />
 
           {result.summary && result.sections?.length ? (
-            <section className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
-              <h3 className="font-semibold text-cyan-100">Executive summary</h3>
-              <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-200">
+            <section className="border border-white/[0.07] p-5">
+              <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Executive summary</h3>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
                 {result.summary}
               </p>
             </section>
@@ -1311,39 +1264,39 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           {result.sections?.map((sec) => (
             <section
               key={sec.title}
-              className="rounded-xl border border-white/10 bg-white/[0.02] p-5"
+              className="border border-white/[0.07] p-5"
             >
-              <h3 className="font-semibold text-zinc-100">{sec.title}</h3>
-              <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-300">
+              <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">{sec.title}</h3>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
                 {sec.analysis}
               </p>
             </section>
           ))}
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-xl border border-white/10 bg-black/30 p-5">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="border border-white/[0.07] p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="font-semibold text-zinc-100">Transcript</h3>
-                <span className="text-xs text-zinc-500">
+                <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Transcript</h3>
+                <span className="text-xs text-zinc-700">
                   {result.language} · {result.transcriptionProvider}
                 </span>
               </div>
-              <p className="max-h-[480px] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
+              <p className="max-h-[480px] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
                 {result.transcript}
               </p>
             </section>
-            <section className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-5">
-              <h3 className="mb-3 font-semibold text-cyan-100">
+            <section className="border border-white/[0.07] p-5">
+              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                 {result.sections?.length ? "Latest analysis" : "Analysis"}
               </h3>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
                 {result.analysis}
               </p>
             </section>
           </div>
           <p className="text-center text-xs text-zinc-500">
             Saved to{" "}
-            <a href="/dashboard" className="text-cyan-400 hover:underline">
+            <a href="/dashboard" className="text-zinc-400 underline hover:text-zinc-200">
               session history
             </a>
           </p>

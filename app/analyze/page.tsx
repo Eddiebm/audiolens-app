@@ -35,7 +35,7 @@ export default async function AnalyzePage({ searchParams }: Props) {
         <p className="mt-2 text-sm text-zinc-400">
           {SITE_NAME} runs transcription and analysis on the server. For YouTube-first
           capture, use{" "}
-          <a href="/youtube" className="text-violet-400 hover:underline">
+          <a href="/youtube" className="text-zinc-300 underline hover:text-white">
             YouTube mode
           </a>
           .

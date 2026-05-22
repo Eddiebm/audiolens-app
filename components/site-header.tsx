@@ -9,15 +9,12 @@ const nav = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-white/10 bg-[#070b12]/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-cyan-500/20 text-sm text-cyan-300">
-            AL
-          </span>
+    <header className="border-b border-white/8 bg-black/90 backdrop-blur-sm">
+      <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="font-semibold tracking-tight text-white">
           {SITE_NAME}
         </Link>
-        <nav className="flex items-center gap-4 text-sm text-zinc-400">
+        <nav className="flex items-center gap-6 text-sm text-zinc-500">
           {nav.map((item) => (
             <Link
               key={item.href}
