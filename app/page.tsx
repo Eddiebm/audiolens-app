@@ -26,7 +26,7 @@ export default function Home() {
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl sm:leading-[1.1]">
             Lectures, YouTube, and meetings —{" "}
-            <span className="text-cyan-300">understood in real time</span>
+            <span className="text-cyan-300">structured notes in minutes</span>
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-zinc-400">
             {SITE_NAME} captures what you&apos;re hearing (browser tab or Mac system

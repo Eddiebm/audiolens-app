@@ -27,12 +27,6 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link
-            href="/analyze"
-            className="rounded-full bg-cyan-500 px-3 py-1.5 text-xs font-medium text-[#041018] transition hover:bg-cyan-400"
-          >
-            Open app
-          </Link>
         </nav>
       </div>
     </header>

@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CostDashboard } from "@/components/cost-dashboard";
 import { CostSettings } from "@/components/cost-settings";
-import { PipelineFlow } from "@/components/pipeline-flow";
-import { SessionImport } from "@/components/session-import";
-import { BRIDGE_ROADMAP } from "@/lib/pipeline";
 
 export const metadata: Metadata = {
   title: "History",
   description:
-    "Import AudioLens session JSON from the macOS CLI or future cloud exports.",
+    "Session history for AudioLens — transcripts and analyses from your cloud sessions.",
+  alternates: { canonical: "/dashboard" },
 };
 
 export default function DashboardPage() {
@@ -32,43 +30,24 @@ export default function DashboardPage() {
 
       <section className="mb-10">
         <CostDashboard />
+        <p className="mt-2 text-xs text-zinc-500">
+          Tracked in this browser. Clear browser data and this resets.
+        </p>
       </section>
 
       <section className="mb-10">
         <CostSettings />
       </section>
 
-      <section className="mb-10 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4 text-sm text-cyan-100/90">
-        <strong className="font-medium">Primary product:</strong> cloud upload at{" "}
-        <Link href="/analyze" className="underline">
-          /analyze
-        </Link>{" "}
-        — no local install required.
-      </section>
-
-      <section className="mb-12">
-        <SessionImport />
-      </section>
-
-      <section className="mb-12">
-        <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-zinc-500">
-          Cloud pipeline
-        </h2>
-        <PipelineFlow compact />
-      </section>
-
-      <section className="rounded-xl border border-white/10 p-5 text-sm text-zinc-400">
-        <h2 className="font-semibold text-zinc-200">Roadmap</h2>
-        <ul className="mt-3 list-inside list-disc space-y-1">
-          {BRIDGE_ROADMAP.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        <p className="mt-4 text-xs text-zinc-500">
-          Session JSON shape:{" "}
-          <code className="text-cyan-300/80">
-            {"{ id, startedAt, chunks: [{ transcript, language, analysis, recordedAt }] }"}
-          </code>
+      <section className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-center">
+        <h2 className="font-semibold text-zinc-200">Session history is coming soon.</h2>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-zinc-400">
+          Your transcripts and analyses will live here once we ship cloud persistence.
+          For now, download your results after each session using the export button on{" "}
+          <Link href="/analyze" className="text-cyan-400 hover:underline">
+            /analyze
+          </Link>
+          .
         </p>
       </section>
     </main>

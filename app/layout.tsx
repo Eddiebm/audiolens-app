@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description:
-    "Upload or record audio — cloud transcription and OpenRouter analysis. No BlackHole required. Optional macOS CLI for live system audio.",
+    "Upload, record, or capture any audio — get structured notes powered by Whisper and Claude.",
   keywords: [
     "AudioLens",
     "audio transcription",

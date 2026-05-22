@@ -2,6 +2,7 @@ import { openRouterApiKey } from "@/lib/env";
 import { MAX_CHUNK_RAW_BYTES } from "@/lib/chunk-config";
 import type { ProcessAudioChunkRequest } from "@/lib/chunk-api";
 import { transcribeAudio } from "@/lib/transcribe";
+import { checkTranscribeLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -13,6 +14,9 @@ function estimateDecodedBytes(base64: string): number {
 }
 
 export async function POST(request: Request) {
+  const limited = await checkTranscribeLimit(request);
+  if (limited) return limited;
+
   try {
     if (!openRouterApiKey() && !process.env.OPENAI_API_KEY?.trim()) {
       return NextResponse.json(

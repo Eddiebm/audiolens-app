@@ -59,6 +59,20 @@ type PreflightState = "idle" | "testing" | "ok" | "fail";
 const ACCEPT =
   "audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/m4a,audio/wav,audio/webm,.mp3,.m4a,.wav,.webm";
 
+const PRESET_LABELS: Record<AnalysisPresetId, string> = {
+  default: "Default",
+  lecture: "Lecture",
+  investor: "Investor call",
+  sermon: "Sermon / talk",
+};
+
+const PRESET_DESCRIPTIONS: Record<AnalysisPresetId, string> = {
+  default: "General summary and key points",
+  lecture: "Concepts, definitions, and study notes",
+  investor: "Signals, risks, and commitments",
+  sermon: "Theme, scripture references, and takeaways",
+};
+
 function isSafariBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
@@ -103,9 +117,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showAdvanced] = useState(!youtubeMode);
   const [preflight, setPreflight] = useState<PreflightState>("idle");
-  const [silenceThreshold, setSilenceThreshold] = useState(
-    DEFAULT_SILENCE_RMS_THRESHOLD
-  );
+  const [silenceStopSec, setSilenceStopSec] = useState<10 | 30 | 60 | 0>(30);
   const [autoStopReason, setAutoStopReason] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -598,9 +610,10 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       setResult(null);
       setAutoStopReason(null);
 
-      if (kind === "display") {
+      if (kind === "display" && silenceStopSec > 0) {
         silenceCleanupRef.current = createSilenceMonitor(stream, {
-          rmsThreshold: silenceThreshold,
+          rmsThreshold: DEFAULT_SILENCE_RMS_THRESHOLD,
+          silenceDurationMs: silenceStopSec * 1000,
           onSilenceAutoStop: () => {
             setAutoStopReason("Audio ended (silence detected) — processing…");
             if (mediaRecorderRef.current?.state === "recording") {
@@ -617,7 +630,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         }
       }, MAX_RECORD_MS);
     },
-    [finishCapture, silenceThreshold]
+    [finishCapture, silenceStopSec]
   );
 
   useEffect(() => {
@@ -676,8 +689,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           return;
         }
 
-        setPreflight(peak >= silenceThreshold ? "ok" : "fail");
-        if (peak < silenceThreshold) {
+        setPreflight(peak >= DEFAULT_SILENCE_RMS_THRESHOLD ? "ok" : "fail");
+        if (peak < DEFAULT_SILENCE_RMS_THRESHOLD) {
           setError(
             "Low audio level during test. Start playback in the tab, then test again."
           );
@@ -725,8 +738,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       const audioOnly = new MediaStream(audioTracks);
       const peak = await measureStreamRms(audioOnly, PREFLIGHT_TEST_MS);
       audioOnly.getTracks().forEach((t) => t.stop());
-      setPreflight(peak >= silenceThreshold ? "ok" : "fail");
-      if (peak < silenceThreshold) {
+      setPreflight(peak >= DEFAULT_SILENCE_RMS_THRESHOLD ? "ok" : "fail");
+      if (peak < DEFAULT_SILENCE_RMS_THRESHOLD) {
         setError(
           "Low audio level during test. Start playback in the tab, then test again."
         );
@@ -958,7 +971,14 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           <p className="mx-auto mt-4 max-w-lg text-center text-xs text-zinc-500">
             The browser picker may still show screen options — we reject Entire
             Screen and Window after you choose. Recording auto-stops when the
-            video ends (silence ~50s) or when you stop. Up to 2 hours.
+            video ends (silence detected) or when you stop. Up to 2 hours.
+          </p>
+          <p className="mx-auto mt-3 max-w-lg text-center text-xs text-zinc-500">
+            Not YouTube?{" "}
+            <a href="/analyze" className="text-violet-300 hover:underline">
+              Use Analyze audio
+            </a>{" "}
+            for any other source.
           </p>
           <div className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-4">
             <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-zinc-100">
@@ -969,7 +989,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                 disabled={isBusy}
                 className="h-4 w-4 rounded border-white/20 bg-black/40 text-amber-400 focus:ring-amber-400/50"
               />
-              Fast listen
+              Transcript only
             </label>
             {fastListen ? (
               <p className="text-center text-xs text-amber-100/90">
@@ -978,7 +998,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
               </p>
             ) : (
               <p className="text-center text-xs text-zinc-500">
-                Skip per-section analysis — faster, lower cost.
+                Skip AI analysis — faster and cheaper.
               </p>
             )}
           </div>
@@ -1051,25 +1071,34 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             </>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="text-sm text-zinc-400">Analysis style</label>
-            <select
-              value={presetId}
-              onChange={(e) =>
-                setPresetId(e.target.value as AnalysisPresetId)
-              }
-              disabled={isBusy}
-              className="rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-zinc-200"
-            >
+          <div className="mb-6">
+            <label className="mb-3 block text-sm font-medium text-zinc-300">
+              What are you listening to?
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {ANALYSIS_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPresetId(p.id as AnalysisPresetId)}
+                  disabled={isBusy}
+                  className={[
+                    "rounded-lg border p-3 text-left text-sm transition disabled:opacity-50",
+                    presetId === p.id
+                      ? "border-cyan-400/60 bg-cyan-500/15 text-zinc-100"
+                      : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:bg-white/[0.06]",
+                  ].join(" ")}
+                >
+                  <p className="font-medium">{PRESET_LABELS[p.id as AnalysisPresetId]}</p>
+                  <p className="mt-1 text-xs leading-snug opacity-75">
+                    {PRESET_DESCRIPTIONS[p.id as AnalysisPresetId]}
+                  </p>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20">
               Choose file
               <input
@@ -1114,6 +1143,15 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
                   Capture tab / screen audio
                 </button>
               </>
+            )}
+            {!isCapturing && (
+              <p className="w-full text-xs text-zinc-500">
+                Analyzing a YouTube video?{" "}
+                <a href="/youtube" className="text-violet-300 hover:underline">
+                  Use YouTube mode
+                </a>{" "}
+                for caption-based instant analysis.
+              </p>
             )}
             {isCapturing && (
               <button
@@ -1181,25 +1219,25 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             </p>
           )}
 
-          <details className="mt-4 text-xs text-zinc-500">
-            <summary className="cursor-pointer hover:text-zinc-300">
-              Silence auto-stop threshold
-            </summary>
-            <label className="mt-2 flex items-center gap-2">
-              RMS ({silenceThreshold.toFixed(4)})
-              <input
-                type="range"
-                min={0.002}
-                max={0.03}
-                step={0.001}
-                value={silenceThreshold}
-                onChange={(e) =>
-                  setSilenceThreshold(Number(e.target.value))
-                }
-                disabled={isCapturing}
-              />
+          <div className="mt-4 flex items-center gap-3 text-xs text-zinc-500">
+            <label htmlFor="silence-stop" className="shrink-0">
+              Stop recording after silence:
             </label>
-          </details>
+            <select
+              id="silence-stop"
+              value={silenceStopSec}
+              onChange={(e) =>
+                setSilenceStopSec(Number(e.target.value) as 10 | 30 | 60 | 0)
+              }
+              disabled={isCapturing}
+              className="rounded border border-white/15 bg-black/40 px-2 py-1 text-zinc-300"
+            >
+              <option value={10}>10 seconds</option>
+              <option value={30}>30 seconds (default)</option>
+              <option value={60}>60 seconds</option>
+              <option value={0}>Never</option>
+            </select>
+          </div>
         </section>
       )}
 
@@ -1253,7 +1291,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           {result.fastListen ? (
             <p className="text-center">
               <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-200">
-                Fast listen
+                Transcript only
               </span>
             </p>
           ) : null}

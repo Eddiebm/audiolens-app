@@ -1,6 +1,7 @@
 import { analyzeTranscript } from "@/lib/analyze";
 import { openRouterApiKey } from "@/lib/env";
 import type { AnalyzeTextRequest } from "@/lib/chunk-api";
+import { checkAnalyzeLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -9,6 +10,9 @@ export const maxDuration = 60;
 const MAX_TRANSCRIPT_CHARS = 120_000;
 
 export async function POST(request: Request) {
+  const limited = await checkAnalyzeLimit(request);
+  if (limited) return limited;
+
   try {
     if (!openRouterApiKey()) {
       return NextResponse.json(

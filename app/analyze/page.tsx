@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Analyze audio",
   description:
     "Upload, record your mic, or capture tab/screen audio — cloud transcription and AI analysis.",
+  alternates: { canonical: "/analyze" },
 };
 
 type Props = {

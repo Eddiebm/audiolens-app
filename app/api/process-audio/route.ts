@@ -6,6 +6,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/constants";
 import { transcribeAudio } from "@/lib/transcribe";
+import { checkTranscribeLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -22,6 +23,9 @@ function jsonError(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const limited = await checkTranscribeLimit(request);
+  if (limited) return limited;
+
   try {
     const contentLength = request.headers.get("content-length");
     if (contentLength) {

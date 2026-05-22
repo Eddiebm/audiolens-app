@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "YouTube capture",
   description:
     "Paste a YouTube URL for instant caption-based analysis, or capture a Chrome tab playing YouTube for videos without captions.",
+  alternates: { canonical: "/youtube" },
 };
 
 export default function YoutubePage() {

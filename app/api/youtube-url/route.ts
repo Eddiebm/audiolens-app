@@ -9,12 +9,16 @@ import {
   YoutubeCaptionsUnavailableError,
 } from "@/lib/youtube-captions";
 import { validateYoutubeUrl } from "@/lib/youtube-url";
+import { checkAnalyzeLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const limited = await checkAnalyzeLimit(request);
+  if (limited) return limited;
+
   try {
     if (!openRouterApiKey()) {
       return NextResponse.json(
