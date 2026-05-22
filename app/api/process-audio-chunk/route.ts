@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       filename?.trim() ||
       `chunk-${chunkIndex + 1}-of-${totalChunks}.${mimeType.includes("wav") ? "wav" : "webm"}`;
 
-    const { transcript, language, provider } = await transcribeAudio(
+    const { transcript, language, provider, usage } = await transcribeAudio(
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       mimeType || "application/octet-stream",
       name
@@ -84,6 +84,12 @@ export async function POST(request: Request) {
       chunkIndex,
       transcriptionProvider: provider,
       sessionId,
+      usage: usage
+        ? {
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+          }
+        : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Chunk transcription failed.";

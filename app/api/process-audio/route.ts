@@ -71,13 +71,13 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const mimeType = file.type || "application/octet-stream";
 
-    const { transcript, language, provider } = await transcribeAudio(
-      bytes,
-      mimeType,
-      file.name
-    );
+    const { transcript, language, provider, usage: transcribeUsage } =
+      await transcribeAudio(bytes, mimeType, file.name);
 
-    const { analysis, usage } = await analyzeTranscript(transcript, language);
+    const { analysis, usage: analysisUsage } = await analyzeTranscript(
+      transcript,
+      language
+    );
 
     return NextResponse.json({
       transcript,
@@ -86,9 +86,15 @@ export async function POST(request: Request) {
       transcriptionProvider: provider,
       processedAt: new Date().toISOString(),
       usage: {
-        promptTokens: usage.promptTokens,
-        completionTokens: usage.completionTokens,
+        promptTokens: analysisUsage.promptTokens,
+        completionTokens: analysisUsage.completionTokens,
       },
+      transcribeUsage: transcribeUsage
+        ? {
+            promptTokens: transcribeUsage.promptTokens,
+            completionTokens: transcribeUsage.completionTokens,
+          }
+        : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Processing failed.";

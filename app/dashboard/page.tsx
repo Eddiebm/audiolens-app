@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CostDashboard } from "@/components/cost-dashboard";
+import { CostSettings } from "@/components/cost-settings";
 import { PipelineFlow } from "@/components/pipeline-flow";
 import { SessionImport } from "@/components/session-import";
 import { BRIDGE_ROADMAP } from "@/lib/pipeline";
@@ -27,6 +29,14 @@ export default function DashboardPage() {
           .
         </p>
       </div>
+
+      <section className="mb-10">
+        <CostDashboard />
+      </section>
+
+      <section className="mb-10">
+        <CostSettings />
+      </section>
 
       <section className="mb-10 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4 text-sm text-cyan-100/90">
         <strong className="font-medium">Primary product:</strong> cloud upload at{" "}

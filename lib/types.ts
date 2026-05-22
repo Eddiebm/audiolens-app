@@ -1,3 +1,5 @@
+import type { CostAccuracy, SessionCostBreakdown } from "@/lib/cost";
+
 export type TranscriptChunk = {
   transcript: string;
   language: string;
@@ -23,6 +25,8 @@ export type AudioLensSession = {
   sections?: SectionAnalysis[];
   language?: string;
   source?: "web" | "cli";
+  costUsd?: number;
+  costAccuracy?: CostAccuracy;
 };
 
 export type ProcessResult = {
@@ -33,9 +37,11 @@ export type ProcessResult = {
   sections?: SectionAnalysis[];
   transcriptionProvider: string;
   processedAt: string;
+  /** @deprecated Use cost.sessionTotalUsd */
   estimatedCostUsd?: number;
   tokenUsage?: {
     promptTokens: number;
     completionTokens: number;
   };
+  cost?: SessionCostBreakdown;
 };

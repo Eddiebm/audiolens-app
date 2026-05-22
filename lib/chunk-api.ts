@@ -12,6 +12,7 @@ export type ProcessAudioChunkResponse = {
   language: string;
   chunkIndex: number;
   transcriptionProvider: string;
+  usage?: { promptTokens: number; completionTokens: number };
 };
 
 export type AnalyzeTextRequest = {

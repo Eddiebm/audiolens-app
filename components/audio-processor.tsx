@@ -15,13 +15,13 @@ import {
   DEFAULT_SILENCE_RMS_THRESHOLD,
 } from "@/lib/capture-config";
 import {
+  buildSessionCost,
   EMPTY_USAGE,
-  estimateCostUsd,
-  estimateTokensFromText,
-  formatCostUsd,
   mergeUsage,
   type TokenUsage,
-} from "@/lib/cost-estimate";
+} from "@/lib/cost";
+import { recordSessionCost } from "@/lib/cost-storage";
+import { SessionCostDisplay } from "@/components/session-cost-display";
 import { fetchWithRetry } from "@/lib/fetch-retry";
 import {
   HOLISTIC_SUMMARY_INSTRUCTION,
@@ -117,7 +117,15 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   const isCapturing = captureKind !== null;
   const isBusy = loading || isCapturing || preflight === "testing";
 
-  const persistSession = useCallback((payload: ProcessResult) => {
+  const publishResult = useCallback((payload: ProcessResult) => {
+    if (payload.cost) {
+      recordSessionCost(
+        payload.cost.sessionTotalUsd,
+        sessionTitleFromTranscript(payload.transcript)
+      );
+      window.dispatchEvent(new Event("audiolens:cost-updated"));
+    }
+    setResult(payload);
     const id = crypto.randomUUID();
     upsertSession({
       id,
@@ -130,6 +138,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       sections: payload.sections,
       language: payload.language,
       source: "web",
+      costUsd: payload.cost?.sessionTotalUsd,
+      costAccuracy: payload.cost?.sessionAccuracy,
     });
   }, []);
 
@@ -244,7 +254,8 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       const transcriptParts: string[] = [];
       let language = "unknown";
       let transcriptionProvider = "openrouter";
-      let usage = EMPTY_USAGE;
+      let transcribeUsage: TokenUsage | null = null;
+      let chunksWithApiUsage = 0;
 
       if (totalChunks === 1) {
         setWarning(
@@ -291,6 +302,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           transcript: string;
           language: string;
           transcriptionProvider: string;
+          usage?: TokenUsage;
         };
 
         if (data.transcript?.trim()) {
@@ -300,11 +312,17 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           language = data.language;
         }
         transcriptionProvider = data.transcriptionProvider;
-        usage = mergeUsage(usage, {
-          promptTokens: estimateTokensFromText(seg.label),
-          completionTokens: estimateTokensFromText(data.transcript ?? ""),
-        });
+        if (data.usage) {
+          chunksWithApiUsage += 1;
+          transcribeUsage = mergeUsage(
+            transcribeUsage ?? EMPTY_USAGE,
+            data.usage
+          );
+        }
       }
+
+      const transcribeUsageForCost =
+        chunksWithApiUsage === segments.length ? transcribeUsage : null;
 
       const transcript = transcriptParts.join("\n\n").trim();
       if (!transcript) {
@@ -312,9 +330,23 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       }
 
       const long = await analyzeLongTranscript(transcript, language, preset);
-      usage = mergeUsage(usage, long.usage);
+      const analysisText = [
+        long.analysis,
+        long.summary !== long.analysis ? long.summary : "",
+        ...long.sections.map((s) => s.analysis),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const cost = buildSessionCost({
+        transcript,
+        analysisText,
+        analysisUsage: long.usage,
+        transcribeUsage: transcribeUsageForCost,
+        transcribePromptFallback: segments.map((s) => s.label).join(" "),
+      });
+      const tokenUsage = mergeUsage(cost.transcribeUsage, cost.analysisUsage);
 
-      const processed: ProcessResult = {
+      publishResult({
         transcript,
         language,
         analysis: long.analysis,
@@ -322,14 +354,12 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         sections: long.sections.length ? long.sections : undefined,
         transcriptionProvider,
         processedAt: new Date().toISOString(),
-        tokenUsage: usage,
-        estimatedCostUsd: estimateCostUsd(usage),
-      };
-
-      setResult(processed);
-      persistSession(processed);
+        tokenUsage,
+        estimatedCostUsd: cost.sessionTotalUsd,
+        cost,
+      });
     },
-    [analyzeLongTranscript, persistSession]
+    [analyzeLongTranscript, publishResult]
   );
 
   const processFile = useCallback(
@@ -349,21 +379,32 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             method: "POST",
             body: form,
           });
-          const data = (await res.json()) as ProcessResult & { error?: string };
+          const data = (await res.json()) as ProcessResult & {
+            error?: string;
+            usage?: TokenUsage;
+            transcribeUsage?: TokenUsage;
+          };
           if (!res.ok) {
             throw new Error(data.error ?? `Request failed (${res.status})`);
           }
-          const usage = data.tokenUsage ?? {
-            promptTokens: estimateTokensFromText(data.transcript),
-            completionTokens: estimateTokensFromText(data.analysis),
-          };
-          const processed: ProcessResult = {
+          const analysisUsage =
+            data.usage ?? data.tokenUsage ?? undefined;
+          const cost = buildSessionCost({
+            transcript: data.transcript,
+            analysisText: data.analysis,
+            analysisUsage,
+            transcribeUsage: data.transcribeUsage,
+          });
+          const tokenUsage = mergeUsage(
+            cost.transcribeUsage,
+            cost.analysisUsage
+          );
+          publishResult({
             ...data,
-            tokenUsage: usage,
-            estimatedCostUsd: estimateCostUsd(usage),
-          };
-          setResult(processed);
-          persistSession(processed);
+            tokenUsage,
+            estimatedCostUsd: cost.sessionTotalUsd,
+            cost,
+          });
           return;
         }
 
@@ -376,7 +417,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         setProgress(null);
       }
     },
-    [processChunked, persistSession]
+    [processChunked, publishResult]
   );
 
   const stopActiveStream = useCallback(() => {
@@ -1059,17 +1100,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
 
       {result && (
         <div className="space-y-6">
-          {result.estimatedCostUsd !== undefined && (
-            <p className="text-center text-xs text-zinc-500">
-              Estimated API cost:{" "}
-              <span className="text-zinc-300">
-                {formatCostUsd(result.estimatedCostUsd)} est.
-              </span>
-              {result.tokenUsage &&
-                ` (${result.tokenUsage.promptTokens + result.tokenUsage.completionTokens} tokens)`}{" "}
-              — rough estimate, not a bill.
-            </p>
-          )}
+          {result.cost && <SessionCostDisplay cost={result.cost} />}
 
           <ReadAloudControls result={result} />
 

@@ -2,7 +2,7 @@ import {
   OPENROUTER_BASE_URL,
   OPENROUTER_MODEL_DEFAULT,
 } from "@/lib/constants";
-import type { TokenUsage } from "@/lib/cost-estimate";
+import { parseOpenRouterUsage, type TokenUsage } from "@/lib/cost";
 import { openRouterApiKey } from "@/lib/env";
 import { presetById } from "@/lib/prompt-presets";
 import { SITE_URL } from "@/lib/site";
@@ -11,19 +11,6 @@ export type AnalyzeResult = {
   analysis: string;
   usage: TokenUsage;
 };
-
-function parseUsage(data: {
-  usage?: {
-    prompt_tokens?: number;
-    completion_tokens?: number;
-  };
-}): TokenUsage {
-  const u = data.usage;
-  return {
-    promptTokens: u?.prompt_tokens ?? 0,
-    completionTokens: u?.completion_tokens ?? 0,
-  };
-}
 
 export async function analyzeTranscript(
   transcript: string,
@@ -75,7 +62,10 @@ export async function analyzeTranscript(
   if (!content) {
     throw new Error("OpenRouter returned empty analysis.");
   }
-  return { analysis: content, usage: parseUsage(data) };
+  return {
+    analysis: content,
+    usage: parseOpenRouterUsage(data) ?? { promptTokens: 0, completionTokens: 0 },
+  };
 }
 
 export const SECTION_ANALYSIS_INSTRUCTION =

@@ -2,6 +2,7 @@ import {
   OPENROUTER_BASE_URL,
   OPENROUTER_TRANSCRIBE_MODEL,
 } from "@/lib/constants";
+import { parseOpenRouterUsage, type TokenUsage } from "@/lib/cost";
 import { openRouterApiKey } from "@/lib/env";
 import { SITE_URL } from "@/lib/site";
 
@@ -9,6 +10,7 @@ export type TranscriptionResult = {
   transcript: string;
   language: string;
   provider: "openai-whisper" | "openrouter";
+  usage?: TokenUsage;
 };
 
 function extensionFromMime(mime: string): string {
@@ -124,6 +126,7 @@ async function transcribeWithOpenRouter(
 
   const data = (await response.json()) as {
     choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
   const parsed = parseTranscriptJson(raw);
@@ -136,6 +139,7 @@ async function transcribeWithOpenRouter(
     transcript: parsed.transcript,
     language: parsed.language,
     provider: "openrouter",
+    usage: parseOpenRouterUsage(data) ?? undefined,
   };
 }
 
