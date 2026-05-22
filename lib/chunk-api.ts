@@ -5,6 +5,7 @@ export type ProcessAudioChunkRequest = {
   audioBase64: string;
   mimeType: string;
   filename?: string;
+  fastMode?: boolean;
 };
 
 export type ProcessAudioChunkResponse = {
@@ -20,6 +21,7 @@ export type AnalyzeTextRequest = {
   language?: string;
   presetId?: string;
   instruction?: string;
+  fastMode?: boolean;
 };
 
 export type AnalyzeTextResponse = {

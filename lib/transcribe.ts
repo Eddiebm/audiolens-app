@@ -1,5 +1,6 @@
 import {
   OPENROUTER_BASE_URL,
+  OPENROUTER_FAST_MODEL,
   OPENROUTER_TRANSCRIBE_MODEL,
 } from "@/lib/constants";
 import { parseOpenRouterUsage, type TokenUsage } from "@/lib/cost";
@@ -23,7 +24,8 @@ function extensionFromMime(mime: string): string {
 export async function transcribeAudio(
   bytes: ArrayBuffer,
   mimeType: string,
-  filename: string
+  filename: string,
+  options?: { fastMode?: boolean }
 ): Promise<TranscriptionResult> {
   const openAiKey = process.env.OPENAI_API_KEY?.trim();
   if (openAiKey) {
@@ -37,7 +39,12 @@ export async function transcribeAudio(
     );
   }
 
-  return transcribeWithOpenRouter(bytes, mimeType, openRouterKey);
+  const model =
+    options?.fastMode === true
+      ? OPENROUTER_FAST_MODEL
+      : OPENROUTER_TRANSCRIBE_MODEL;
+
+  return transcribeWithOpenRouter(bytes, mimeType, openRouterKey, model);
 }
 
 async function transcribeWithOpenAI(
@@ -83,7 +90,8 @@ async function transcribeWithOpenAI(
 async function transcribeWithOpenRouter(
   bytes: ArrayBuffer,
   mimeType: string,
-  apiKey: string
+  apiKey: string,
+  model: string = OPENROUTER_TRANSCRIBE_MODEL
 ): Promise<TranscriptionResult> {
   const base64 = Buffer.from(bytes).toString("base64");
   const format = extensionFromMime(mimeType);
@@ -97,7 +105,7 @@ async function transcribeWithOpenRouter(
       "X-Title": "AudioLens",
     },
     body: JSON.stringify({
-      model: OPENROUTER_TRANSCRIBE_MODEL,
+      model,
       max_tokens: 4096,
       messages: [
         {

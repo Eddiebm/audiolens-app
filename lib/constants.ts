@@ -24,6 +24,9 @@ export const OPENROUTER_MODEL_DEFAULT =
 export const OPENROUTER_TRANSCRIBE_MODEL =
   process.env.OPENROUTER_TRANSCRIBE_MODEL ?? "google/gemini-2.5-flash";
 
+/** Fast listen: analysis + optional per-chunk transcribe override */
+export const OPENROUTER_FAST_MODEL = "google/gemini-2.5-flash";
+
 import { ANALYSIS_PRESETS } from "@/lib/prompt-presets";
 
 export const ANALYSIS_SYSTEM_PROMPT = ANALYSIS_PRESETS[0].systemPrompt;

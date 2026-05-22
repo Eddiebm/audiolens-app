@@ -9,7 +9,7 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | Path | Purpose |
 |------|---------|
 | `/` | Landing — cloud-first positioning + tab/screen capture |
-| `/youtube` | **Tab-only** capture for YouTube / in-browser video (no mic, no upload) |
+| `/youtube` | **Tab-only** capture for YouTube / in-browser video (no mic, no upload); optional **Fast listen** (1.5×–2× playback tip, single-pass analysis) |
 | `/analyze` | Upload, mic, or desktop/tab capture → transcript + analysis |
 | `/dashboard` | Import session JSON history (CLI bridge) |
 

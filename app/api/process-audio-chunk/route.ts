@@ -75,7 +75,8 @@ export async function POST(request: Request) {
     const { transcript, language, provider, usage } = await transcribeAudio(
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       mimeType || "application/octet-stream",
-      name
+      name,
+      { fastMode: body.fastMode === true }
     );
 
     return NextResponse.json({

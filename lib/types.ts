@@ -35,6 +35,8 @@ export type ProcessResult = {
   analysis: string;
   summary?: string;
   sections?: SectionAnalysis[];
+  /** True when processed with Fast listen (single-pass + fast models). */
+  fastListen?: boolean;
   transcriptionProvider: string;
   processedAt: string;
   /** @deprecated Use cost.sessionTotalUsd */

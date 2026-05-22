@@ -99,6 +99,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [presetId, setPresetId] = useState<AnalysisPresetId>("default");
+  const [fastListen, setFastListen] = useState(false);
   const [showAdvanced] = useState(!youtubeMode);
   const [preflight, setPreflight] = useState<PreflightState>("idle");
   const [silenceThreshold, setSilenceThreshold] = useState(
@@ -147,15 +148,48 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
     async (
       transcript: string,
       language: string,
-      preset: AnalysisPresetId
+      preset: AnalysisPresetId,
+      fastMode: boolean
     ): Promise<{
       sections: SectionAnalysis[];
       summary: string;
       analysis: string;
       usage: TokenUsage;
     }> => {
-      const parts = splitTranscriptSections(transcript);
       let usage = EMPTY_USAGE;
+
+      if (fastMode) {
+        setProgress({
+          phase: "analyzing-summary",
+          chunkIndex: 0,
+          totalChunks: 0,
+        });
+
+        const res = await fetchWithRetry("/api/analyze-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcript,
+            language,
+            presetId: preset,
+            fastMode: true,
+          }),
+        });
+        if (!res.ok) throw new Error(await parseJsonError(res));
+        const data = (await res.json()) as {
+          analysis: string;
+          usage?: TokenUsage;
+        };
+        if (data.usage) usage = mergeUsage(usage, data.usage);
+        return {
+          sections: [],
+          summary: data.analysis,
+          analysis: data.analysis,
+          usage,
+        };
+      }
+
+      const parts = splitTranscriptSections(transcript);
       const sections: SectionAnalysis[] = [];
 
       if (parts.length <= 1) {
@@ -248,7 +282,11 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   );
 
   const processChunked = useCallback(
-    async (segments: AudioSegment[], preset: AnalysisPresetId) => {
+    async (
+      segments: AudioSegment[],
+      preset: AnalysisPresetId,
+      fastMode: boolean
+    ) => {
       const sessionId = crypto.randomUUID();
       const totalChunks = segments.length;
       const transcriptParts: string[] = [];
@@ -287,6 +325,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
               audioBase64,
               mimeType: seg.mimeType,
               filename: seg.label,
+              fastMode: fastMode || undefined,
             }),
           },
           { maxAttempts: 3 }
@@ -329,14 +368,21 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         throw new Error("No speech detected across all chunks.");
       }
 
-      const long = await analyzeLongTranscript(transcript, language, preset);
-      const analysisText = [
-        long.analysis,
-        long.summary !== long.analysis ? long.summary : "",
-        ...long.sections.map((s) => s.analysis),
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const long = await analyzeLongTranscript(
+        transcript,
+        language,
+        preset,
+        fastMode
+      );
+      const analysisText = fastMode
+        ? long.analysis
+        : [
+            long.analysis,
+            long.summary !== long.analysis ? long.summary : "",
+            ...long.sections.map((s) => s.analysis),
+          ]
+            .filter(Boolean)
+            .join("\n");
       const cost = buildSessionCost({
         transcript,
         analysisText,
@@ -352,6 +398,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         analysis: long.analysis,
         summary: long.summary,
         sections: long.sections.length ? long.sections : undefined,
+        fastListen: fastMode || undefined,
         transcriptionProvider,
         processedAt: new Date().toISOString(),
         tokenUsage,
@@ -409,7 +456,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         }
 
         const segments = await buildSegmentsForFile(audioFile);
-        await processChunked(segments, preset);
+        await processChunked(segments, preset, fastListen);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       } finally {
@@ -417,7 +464,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
         setProgress(null);
       }
     },
-    [processChunked, publishResult]
+    [fastListen, processChunked, publishResult]
   );
 
   const stopActiveStream = useCallback(() => {
@@ -462,7 +509,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
       setLoading(true);
       setError(null);
       setResult(null);
-      void processChunked(segments, presetId)
+      void processChunked(segments, presetId, fastListen)
         .catch((e) => {
           setError(e instanceof Error ? e.message : "Processing failed.");
         })
@@ -471,7 +518,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
           setProgress(null);
         });
     },
-    [processChunked, presetId, stopActiveStream]
+    [fastListen, processChunked, presetId, stopActiveStream]
   );
 
   const startMediaRecorder = useCallback(
@@ -832,6 +879,28 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
             Screen and Window after you choose. Recording auto-stops when the
             video ends (silence ~50s) or when you stop. Up to 2 hours.
           </p>
+          <div className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-4">
+            <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-zinc-100">
+              <input
+                type="checkbox"
+                checked={fastListen}
+                onChange={(e) => setFastListen(e.target.checked)}
+                disabled={isBusy}
+                className="h-4 w-4 rounded border-white/20 bg-black/40 text-amber-400 focus:ring-amber-400/50"
+              />
+              Fast listen
+            </label>
+            {fastListen ? (
+              <p className="text-center text-xs text-amber-100/90">
+                Tip: Play YouTube at 1.5×–2× for faster capture. Analysis uses
+                one quick pass (5 bullets + 3 actions this week).
+              </p>
+            ) : (
+              <p className="text-center text-xs text-zinc-500">
+                Skip per-section analysis — faster, lower cost.
+              </p>
+            )}
+          </div>
           <div className="mt-8 flex flex-col items-center gap-3">
             {!isCapturing ? (
               <>
@@ -1100,6 +1169,13 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
 
       {result && (
         <div className="space-y-6">
+          {result.fastListen ? (
+            <p className="text-center">
+              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-200">
+                Fast listen
+              </span>
+            </p>
+          ) : null}
           {result.cost && <SessionCostDisplay cost={result.cost} />}
 
           <ReadAloudControls result={result} />

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     const { analysis, usage } = await analyzeTranscript(transcript, language, {
       presetId: body.presetId,
       instruction: body.instruction,
+      fastMode: body.fastMode === true,
     });
 
     return NextResponse.json({

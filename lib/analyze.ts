@@ -1,5 +1,6 @@
 import {
   OPENROUTER_BASE_URL,
+  OPENROUTER_FAST_MODEL,
   OPENROUTER_MODEL_DEFAULT,
 } from "@/lib/constants";
 import { parseOpenRouterUsage, type TokenUsage } from "@/lib/cost";
@@ -12,22 +13,39 @@ export type AnalyzeResult = {
   usage: TokenUsage;
 };
 
+/** Fast listen: one short pass — podcast-style takeaways, no per-section loop. */
+export const FAST_LISTEN_SYSTEM_PROMPT = `You are helping someone learn from a podcast or long-form talk they listened to at higher playback speed.
+
+Reply in plain text (no markdown headings). Keep the full response under 300 words.
+
+Structure exactly:
+1) Five bullet takeaways (one line each, most important ideas only).
+2) Three concrete actions they can take this week (numbered 1–3, specific and doable).
+
+Skip long quotes, timestamps, and section-by-section recap.`;
+
 export async function analyzeTranscript(
   transcript: string,
   language: string,
-  options?: { presetId?: string; instruction?: string }
+  options?: { presetId?: string; instruction?: string; fastMode?: boolean }
 ): Promise<AnalyzeResult> {
   const apiKey = openRouterApiKey();
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
+  const fastMode = options?.fastMode === true;
   const preset = presetById(options?.presetId);
-  const system = options?.instruction?.trim() || preset.systemPrompt;
+  const system = fastMode
+    ? FAST_LISTEN_SYSTEM_PROMPT
+    : options?.instruction?.trim() || preset.systemPrompt;
 
-  const userMsg = options?.instruction
+  const userMsg = options?.instruction && !fastMode
     ? `${options.instruction}\n\n[Language: ${language}]\n\nTranscript:\n${transcript}`
     : `[Language: ${language}]\n\nTranscript:\n${transcript}`;
+
+  const model = fastMode ? OPENROUTER_FAST_MODEL : OPENROUTER_MODEL_DEFAULT;
+  const maxTokens = fastMode ? 1024 : 2048;
 
   const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
     method: "POST",
@@ -38,8 +56,8 @@ export async function analyzeTranscript(
       "X-Title": "AudioLens",
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL_DEFAULT,
-      max_tokens: 2048,
+      model,
+      max_tokens: maxTokens,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userMsg },
