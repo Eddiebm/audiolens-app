@@ -8,7 +8,7 @@ import {
 } from "@/lib/client/read-aloud";
 import type { ProcessResult } from "@/lib/types";
 
-const RATES: ReadAloudRate[] = [0.9, 1, 1.1];
+const RATES: ReadAloudRate[] = [1, 1.25, 1.5, 1.75, 2];
 
 function segmentsFromResult(
   result: ProcessResult,
@@ -150,7 +150,7 @@ export function ReadAloudControls({ result }: Props) {
         )}
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs text-zinc-500">
-        <span>Speed</span>
+        <span>Playback speed</span>
         {RATES.map((r) => (
           <button
             key={r}

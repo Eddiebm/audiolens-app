@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type ReadAloudRate = 0.9 | 1 | 1.1;
+export type ReadAloudRate = 1 | 1.25 | 1.5 | 1.75 | 2;
 
 export type ReadAloudSegment = {
   label?: string;
@@ -36,7 +36,7 @@ function buildUtterance(
 export function useReadAloud() {
   const [speaking, setSpeaking] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [rate, setRate] = useState<ReadAloudRate>(1);
+  const [rate, setRate] = useState<ReadAloudRate>(1.25);
   const [voicesReady, setVoicesReady] = useState(false);
   const indexRef = useRef(0);
   const segmentsRef = useRef<ReadAloudSegment[]>([]);
