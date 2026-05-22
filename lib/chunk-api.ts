@@ -31,6 +31,12 @@ export type AnalyzeTextResponse = {
   usage?: { promptTokens: number; completionTokens: number };
 };
 
+export type YoutubeUrlRequest = {
+  url: string;
+  fastMode?: boolean;
+  presetId?: string;
+};
+
 export async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(buffer);

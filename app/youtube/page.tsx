@@ -5,7 +5,7 @@ import { SITE_NAME } from "@/lib/site";
 export const metadata: Metadata = {
   title: "YouTube capture",
   description:
-    "Capture a Chrome tab playing YouTube (or any video), transcribe in chunks, and get section summaries plus an executive summary.",
+    "Paste a YouTube URL for instant caption-based analysis, or capture a Chrome tab playing YouTube for videos without captions.",
 };
 
 export default function YoutubePage() {
@@ -14,7 +14,8 @@ export default function YoutubePage() {
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold tracking-tight">YouTube & long video</h1>
         <p className="mt-2 text-sm text-zinc-400">
-          {SITE_NAME} — tab-only capture for lectures, podcasts, and streams.
+          {SITE_NAME} — paste a link for captions, or tab capture when captions
+          are missing.
         </p>
         <p className="mx-auto mt-3 max-w-lg text-sm text-zinc-300">
           <strong>Audio isolation:</strong> we record only the tab you share — not

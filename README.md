@@ -9,7 +9,7 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | Path | Purpose |
 |------|---------|
 | `/` | Landing — cloud-first positioning + tab/screen capture |
-| `/youtube` | **Tab-only** capture for YouTube / in-browser video (no mic, no upload); optional **Fast listen** (1.5×–2× playback tip, single-pass analysis) |
+| `/youtube` | **Paste YouTube URL** (instant caption transcript + analysis) or **tab-only** capture when captions are missing; optional **Fast listen** |
 | `/analyze` | Upload, mic, or desktop/tab capture → transcript + analysis |
 | `/dashboard` | Import session JSON history (CLI bridge) |
 
@@ -25,6 +25,28 @@ Optional **macOS CLI** (`~/audiolens`) remains the advanced path for **unattende
 | **Browser — microphone** | Voice notes, in-room audio | No |
 | **Browser — tab/screen capture** | YouTube, webinars, VLC/QuickTime while playing | No — uses Screen Capture API (`getDisplayMedia`) |
 | **macOS CLI** | Live, hands-free system audio loop | Yes — virtual device + Python CLI |
+
+### YouTube URL paste (`/youtube`)
+
+**Fastest path** when the video has public captions (manual or auto-generated):
+
+1. Paste a `youtube.com` or `youtu.be` link.
+2. Click **Analyze link**.
+3. Server fetches captions via `youtube-transcript` (no Whisper chunks) → `POST /api/analyze-text` pipeline → same results UI (transcript, analysis, cost, read-aloud, Fast listen badge).
+
+**Cost:** analysis API only — typically much cheaper and faster than tab capture.
+
+**Limitations:**
+
+| Case | Behavior |
+|------|----------|
+| No captions | `422` with hint to use tab capture below |
+| Private / unlisted | Often fails if captions are not publicly available |
+| Live streams | May fail or return incomplete captions |
+| Invalid URL | Friendly validation error |
+| YouTube rate limits | Retry later or use tab capture |
+
+Uses YouTube captions when available (instant). For videos without captions, use tab capture.
 
 ### YouTube / isolated tab capture (`/youtube`)
 
@@ -77,6 +99,8 @@ Vercel — POST /api/process-audio-chunk  (per segment, maxDuration 60s)
     ▼
 Client accumulates transcript text
     ▼
+Vercel — POST /api/youtube-url  (optional: captions → analyze, no transcribe)
+    ▼
 Vercel — POST /api/analyze-text  (full transcript, text-only JSON)
     │  analyze: OpenRouter chat
     ▼
@@ -99,6 +123,7 @@ JSON { transcript, language, analysis }
 |-------|--------|
 | Capture (cloud) | File upload, browser mic, or tab/screen audio via Screen Capture API |
 | Transcription | OpenAI `whisper-1` **or** OpenRouter audio model (server) |
+| YouTube captions | `youtube-transcript` on `POST /api/youtube-url` (no Whisper) |
 | Analysis | OpenRouter LLM on transcript text only |
 | API keys | **Server-only** Vercel env vars — never exposed to the client |
 

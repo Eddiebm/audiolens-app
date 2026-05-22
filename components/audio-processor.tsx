@@ -100,6 +100,7 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
   const [warning, setWarning] = useState<string | null>(null);
   const [presetId, setPresetId] = useState<AnalysisPresetId>("default");
   const [fastListen, setFastListen] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [showAdvanced] = useState(!youtubeMode);
   const [preflight, setPreflight] = useState<PreflightState>("idle");
   const [silenceThreshold, setSilenceThreshold] = useState(
@@ -408,6 +409,49 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
     },
     [analyzeLongTranscript, publishResult]
   );
+
+  const analyzeYoutubeUrl = useCallback(async () => {
+    const url = youtubeUrl.trim();
+    if (!url) {
+      setError("Paste a YouTube link first.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setWarning(null);
+    setResult(null);
+    setProgress(null);
+    setAutoStopReason(null);
+
+    try {
+      const res = await fetchWithRetry("/api/youtube-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          presetId,
+          fastMode: fastListen,
+        }),
+      });
+      const data = (await res.json()) as ProcessResult & {
+        error?: string;
+        hint?: string;
+      };
+      if (!res.ok) {
+        const detail = data.hint
+          ? `${data.error ?? "Request failed"} — ${data.hint}`
+          : (data.error ?? `Request failed (${res.status})`);
+        throw new Error(detail);
+      }
+      publishResult(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+      setProgress(null);
+    }
+  }, [fastListen, presetId, publishResult, youtubeUrl]);
 
   const processFile = useCallback(
     async (audioFile: File, preset: AnalysisPresetId) => {
@@ -852,6 +896,43 @@ export function AudioProcessor({ mode = "full" }: AudioProcessorProps) {
 
   return (
     <div className="space-y-8">
+      {youtubeMode ? (
+        <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+          <h2 className="text-center text-lg font-semibold text-emerald-100">
+            Paste YouTube URL
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-center text-sm text-zinc-400">
+            Uses YouTube captions when available (instant). For videos without
+            captions, use tab capture below.
+          </p>
+          <div className="mx-auto mt-4 flex max-w-xl flex-col gap-3 sm:flex-row">
+            <input
+              type="url"
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=…"
+              disabled={isBusy}
+              className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-400/50 focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isBusy) void analyzeYoutubeUrl();
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => void analyzeYoutubeUrl()}
+              disabled={isBusy || !youtubeUrl.trim()}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            >
+              Analyze link
+            </button>
+          </div>
+          <p className="mx-auto mt-3 max-w-lg text-center text-xs text-zinc-500">
+            Analysis only — no Whisper chunks. Private, unlisted, or live streams
+            may fail if captions are not public.
+          </p>
+        </section>
+      ) : null}
+
       {youtubeMode ? (
         <section className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-8">
           <h2 className="text-center text-xl font-semibold text-violet-100">
